@@ -1,3 +1,32 @@
+# manynet 0.2.3
+
+2023-09-17
+
+## Package
+
+* Fixed URL in read_
+
+# manynet 0.2.2
+
+2023-09-17
+
+## Package
+
+* README now points to `{migraph}` earlier
+
+## Tutorials
+
+* Fixed various bugs in first (data) tutorial
+
+## Map
+
+* Fixed explicit node_shape bug
+
+## Data
+
+* Added `ison_lawfirm` data from Lazega, see documentation for more details
+* Upgraded ison_marvel data to latest igraph specification
+
 # manynet 0.2.1
 
 2023-08-11
