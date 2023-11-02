@@ -1,3 +1,105 @@
+# manynet 0.2.8
+
+2023-11-02
+
+## Package
+
+- Fixed tutorials documentation issue for CRAN
+
+# manynet 0.2.7
+
+2023-11-01
+
+## Making
+
+- Updated treatment of adjacency matrices in `as_igraph()` in accordance with upcoming updates to `{igraph}` package (closing #27)
+
+## Manipulating
+
+- Added `to_mentoring` function
+
+## Mapping
+
+- Fixed bugs in `autographr()` related to `edge_size` and `edge_color`
+- Fixed bugs and updated label placements for "circular" and "concentric" layouts for `autographr()`
+- Fixed issues with self-ties in `autographr()`
+- Updated tests for `autographr()`
+
+## Data
+
+- Added `ison_friends`, a one-mode network on character connections of a popular TV series
+
+# manynet 0.2.6
+
+2023-10-25
+
+## Package
+
+- Added documentation for tutorial helper functions
+
+## Making
+
+- `generate` examples leverage `autographr()` again
+
+## Manipulating
+
+- Fixed bug in `to_redirected.tbl_graph()`
+- `print.tbl_graph()` no longer mentions the object class
+
+## Mapping
+
+- `layout_tbl_graph_concentric()` now works with two-mode networks, multiple levels for one-mode networks, and accepts new vectors
+- Added `layout_tbl_graph_multilevel()` for laying out multilevel networks
+- Added `layout_tbl_graph_triad()` and `layout_tbl_graph_quad()` configurational layouts
+
+## Data
+
+- Added `ison_starwars`, a collection of seven weighted interaction networks on a popular film franchise
+- `ison_networkers` names are now in title case, not all caps
+
+# manynet 0.2.5
+
+2023-10-19
+
+## Package
+
+- Added 'tutorial0' for those less comfortable with R
+- Added `run_tute()` helper for quicker access to `{manynet}` and `{migraph}` tutorials
+- Added `extract_tute()` for extracting the main code examples from `{manynet}` and `{migraph}` tutorials
+- Added `purl = FALSE` to tutorial chunks that are not needed for extraction (thanks @JaelTan)
+- Updated website with new functions `run_tute()` and `extract_tute()`
+
+## Mapping
+
+- Fixed remaining issues with `node_group` and updated documentation
+
+# manynet 0.2.4
+
+2023-10-11
+
+## Package
+
+* README now includes Macports installation instructions
+* Added `{graphlayouts}`, `{ggforce}`, and `{multiplex}` to Suggested
+
+## Manipulating
+
+* Added `to_galois()` for transforming networks into partially ordered Galois lattices
+
+## Mapping
+
+* Fixed bug in node_shape argument in `autographr()`
+* Fixed bug in node_group argument in `autographr()`, closes #11
+* Fixed bug in inconsistent default colour scheme for node_color and node_group in `autographr()`
+* `autographr()` now automatically bends arcs for reciprocated ties when directed network is not too large/dense
+* `autographr()` now accepts unquoted variables as arguments
+* `autographr()` now uses `graphlayouts::layout_igraph_multilevel` where appropriate
+* Default node labelling now larger and further from nodes in circular layout
+
+## Data
+
+- `ison_algebra` now an anonymised network (again)
+
 # manynet 0.2.3
 
 2023-09-17

@@ -6,6 +6,8 @@
 #'   Note that these layout algorithms use `{Rgraphviz}`, 
 #'   a package that is only available on Bioconductor.
 #'   It will first need to be downloaded using `BiocManager::install("Rgraphviz")`.
+#'   If it has not already been installed, there is a prompt the first time
+#'   these functions are used though.
 #'
 #'   The "hierarchy" layout layers the first node set along the bottom,
 #'   and the second node set along the top, 
@@ -18,6 +20,7 @@
 #'   but places successive layers horizontally rather than vertically.
 #'   The "concentric" layout places a "hierarchy" layout
 #'   around a circle, with successive layers appearing as concentric circles.
+#'   The "multilevel" layout places successive layers as multiple levels.
 #' @name partition_layouts
 #' @inheritParams transform
 #' @param circular Should the layout be transformed into a radial representation. 
@@ -32,6 +35,8 @@
 #'   for the nodes around the circles. 
 #'   By default ordering is given by a bipartite placement that reduces
 #'   the number of edge crossings.
+#' @param level A node attribute or a vector to hierarchically order levels for
+#'   "multilevel" layout.
 #' @family mapping
 #' @source
 #'   Diego Diez, Andrew P. Hutchins and Diego Miranda-Saavedra. 2014.
@@ -44,7 +49,6 @@ NULL
 #' @export
 layout_tbl_graph_hierarchy <- function(.data,
                                        circular = FALSE, times = 1000){
-  
   thisRequiresBio("Rgraphviz")
   prep <- as_matrix(.data, twomode = FALSE)
   if(anyDuplicated(rownames(prep))){
@@ -105,44 +109,45 @@ layout_tbl_graph_ladder <- function(.data,
 #' @export
 layout_tbl_graph_concentric <- function(.data, membership = NULL, radius = NULL, 
                                         order.by = NULL, 
-                                        circular = FALSE, times = 1000){
-  if (is.null(membership)){ 
-    if(is_twomode(.data))
-      membership <- node_mode(.data) else 
-        stop("Please pass the function a `membership` vector.")
-  } 
-  if(is.null(names(membership)) & is_labelled(.data))
-    names(membership) <- node_names(.data)
+                                        circular = FALSE, times = 1000) {
+  if (is.null(membership)) { 
+    if (is_twomode(.data)) membership <- node_mode(.data) else 
+      stop("Please pass the function a `membership` node attribute or a vector.")
+  } else {
+    if (length(membership) > 1 & length(membership) != length(.data)) {
+      stop("Please pass the function a `membership` node attribute or a vector.")
+    } else if (length(membership) != length(.data)) {
+      membership <- node_attribute(.data, membership)
+    }
+  }
+  names(membership) <- node_names(.data)
   membership <- to_list(membership)
   all_c  <- unlist(membership, use.names = FALSE)
-  if (any(table(all_c) > 1)) 
-    stop("Duplicated nodes in layers!")
-  if(is_labelled(.data))
-    all_n <- node_names(.data) else
-      all_n <- 1:network_nodes(.data)
+  if (any(table(all_c) > 1)) stop("Duplicated nodes in layers!")
+  if (is_labelled(.data)) all_n <- node_names(.data) else all_n <- 1:network_nodes(.data)
   sel_other  <- all_n[!all_n %in% all_c]
-  if (length(sel_other) > 0) 
-    membership[[length(membership) + 1]] <- sel_other
+  if (length(sel_other) > 0) membership[[length(membership) + 1]] <- sel_other
   if (is.null(radius)) {
     radius <- seq(0, 1, 1/(length(membership)))
     if (length(membership[[1]]) == 1) 
-      radius <- radius[-length(radius)] else 
-        radius <- radius[-1]
+      radius <- radius[-length(radius)] else radius <- radius[-1]
   }
-  if (!is.null(order.by)){
+  if (!is.null(order.by)) {
     order.values <- lapply(order.by, 
                            function(b) node_attribute(.data, b))
   } else {
-    for(k in 2:length(membership)){
+    if (is_twomode(.data)) {
+      for(k in 2:length(membership)) {
       xnet <- as_matrix(to_multilevel(.data))[membership[[k-1]], 
                                               membership[[k]]]
       lo <- layout_tbl_graph_hierarchy(as_igraph(xnet, twomode = TRUE))
       lo$names <- node_names(.data)
-      if(ncol(lo)==2) lo[,1] <- seq_len(lo)
+      if (ncol(lo) == 2) lo[,1] <- seq_len(lo)
       order.values <- lapply(1:0, function(x)
-        if(ncol(lo)>=3) sort(lo[lo[,2]==x,])[,3] 
-        else sort(lo[lo[,2]==x,1]) ) 
-    }
+        if(ncol(lo) >= 3) sort(lo[lo[,2] == x,])[,3] 
+        else sort(lo[lo[,2] == x,1]) ) 
+      } 
+    } else order.values <- membership
     # order.values <- getNNvec(.data, members)
   }
   res <- matrix(NA, nrow = length(all_n), ncol = 2)
@@ -154,6 +159,28 @@ layout_tbl_graph_concentric <- function(.data, membership = NULL, radius = NULL,
     res[l, ] <- getCoordinates(l, r)
   }
   .to_lo(res)
+}
+
+#' @rdname partition_layouts
+#' @export
+layout_tbl_graph_multilevel <- function(.data, level = NULL, circular = FALSE) {
+  if (is.null(level)) { 
+    if (any(grepl("lvl", names(node_attribute(.data))))) {
+      message("Level attribute 'lvl' found in data.")
+      } else {
+        stop("Please pass the function a `level` node attribute or a vector.")
+      }
+  } else {
+    if (length(level) > 1 & length(level) != length(.data)) {
+      stop("Please pass the function a `level` node attribute or a vector.")
+    } else if (length(level) != length(.data)) {
+      level <- node_attribute(.data, level)
+    }
+  }
+  out <- igraph::set_vertex_attr(.data, "lvl", value = level)
+  thisRequires("graphlayouts")
+  out <- graphlayouts::layout_as_multilevel(out, alpha = 25)
+  .to_lo(out)
 }
 
 .rescale <- function(vector){
