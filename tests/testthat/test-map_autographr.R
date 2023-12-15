@@ -137,3 +137,28 @@ test_that("concentric and circular layouts graph correctly", {
                     envir = test_conc$plot_env)$membership,
                "Gender")
 })
+
+test_that("hierarchy and lineage layouts graph correctly", {
+  skip_on_cran()
+  test_lin <- ison_adolescents %>% 
+    mutate(year = rep(c(1985, 1990, 1995, 2000), times = 2)) %>%
+    autographr(layout = "lineage", rank = "year")
+  test_hie <- autographr(ison_southern_women,
+                         layout = "hierarchy", center = "events")
+  expect_equal(test_lin$plot_env$layout, "lineage")
+  expect_equal((eval(quote(pairlist(...)),
+                     envir = test_lin[["plot_env"]])[["rank"]]),
+               "year")
+  expect_equal(test_hie$plot_env$layout, "hierarchy")
+  expect_equal((eval(quote(pairlist(...)),
+                     envir = test_hie[["plot_env"]])[["center"]]),
+               "events")
+})
+
+test_that("autographr works for diff_model objects", {
+  skip_on_cran()
+  skip_on_ci()
+  test_diff <- autographr(migraph::play_diffusion(ison_brandes))
+  expect_equal(test_diff[["guides"]][["shape"]][["name"]], "legend")
+  expect_equal(test_diff[["guides"]][["colour"]][["name"]], "colorbar")
+})

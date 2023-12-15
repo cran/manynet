@@ -122,6 +122,11 @@ is_twomode.data.frame <- function(.data) {
     length(intersect(.data[,1], .data[,2])) == 0
 }
 
+#' @export
+is_twomode.numeric <- function(.data) {
+  return(FALSE)
+}
+
 #' @describeIn is Tests whether network is weighted
 #' @importFrom igraph is.weighted
 #' @examples
@@ -305,13 +310,15 @@ is_multiplex.matrix <- function(.data) {
 #' @export
 is_multiplex.tbl_graph <- function(.data) {
   igraph::any_multiple(.data) |
-    length(igraph::edge_attr_names(as_igraph(.data))) > 1
+    length(igraph::edge_attr_names(as_igraph(.data))) > 1 |
+    "type" %in% igraph::edge_attr_names(.data)
 }
 
 #' @export
 is_multiplex.igraph <- function(.data) {
   igraph::any_multiple(.data) |
-    length(igraph::edge_attr_names(as_igraph(.data))) > 1
+    length(igraph::edge_attr_names(.data)) > 1 |
+    "type" %in% igraph::edge_attr_names(.data)
 }
 
 #' @export

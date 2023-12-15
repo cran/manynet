@@ -11,7 +11,8 @@
 #'
 #'   The "hierarchy" layout layers the first node set along the bottom,
 #'   and the second node set along the top, 
-#'   sequenced and spaced as necessary to minimise edge overlap. 
+#'   sequenced and spaced as necessary to minimise edge overlap.
+#'   These node sets can be arranged using the "center" argument.
 #'   The "alluvial" layout is similar to "hierarchy", 
 #'   but places successive layers horizontally rather than vertically.
 #'   The "railway" layout is similar to "hierarchy",
@@ -21,10 +22,17 @@
 #'   The "concentric" layout places a "hierarchy" layout
 #'   around a circle, with successive layers appearing as concentric circles.
 #'   The "multilevel" layout places successive layers as multiple levels.
+#'   The "lineage" layout ranks nodes in Y axis according to values.
+#'   These values for ranking the nodes should be declared as a node attribute
+#'   in the "rank" argument.
 #' @name partition_layouts
 #' @inheritParams transform
 #' @param circular Should the layout be transformed into a radial representation. 
-#' Only possible for some layouts. Defaults to FALSE
+#' Only possible for some layouts. Defaults to FALSE.
+#' @param center Further split "hierarchical" layouts by
+#'   declaring the "center" argument as the "events", "actors",
+#'   or by declaring a node name.
+#'   Defaults to NULL.
 #' @param times Maximum number of iterations, where appropriate
 #' @param radius A vector of radii at which the concentric circles
 #'   should be located.
@@ -37,6 +45,8 @@
 #'   the number of edge crossings.
 #' @param level A node attribute or a vector to hierarchically order levels for
 #'   "multilevel" layout.
+#' @param rank A numerical node attribute to place nodes in Y axis
+#'   according to values.
 #' @family mapping
 #' @source
 #'   Diego Diez, Andrew P. Hutchins and Diego Miranda-Saavedra. 2014.
@@ -47,22 +57,64 @@ NULL
 
 #' @rdname partition_layouts
 #' @export
-layout_tbl_graph_hierarchy <- function(.data,
-                                       circular = FALSE, times = 1000){
-  thisRequiresBio("Rgraphviz")
-  prep <- as_matrix(.data, twomode = FALSE)
-  if(anyDuplicated(rownames(prep))){
-    rownames(prep) <- seq_len(nrow(prep))
-    colnames(prep) <- seq_len(ncol(prep))
+layout_tbl_graph_hierarchy <- function(.data, center = NULL,
+                                       circular = FALSE, times = 1000) {
+  if (is.null(center)) {
+    thisRequiresBio("Rgraphviz")
+    prep <- as_matrix(.data, twomode = FALSE)
+    if(anyDuplicated(rownames(prep))){
+      rownames(prep) <- seq_len(nrow(prep))
+      colnames(prep) <- seq_len(ncol(prep))
+    }
+    if(any(prep<0)) prep[prep<0] <- 0
+    out <- as_graphAM(prep)
+    out <- suppressMessages(Rgraphviz::layoutGraph(out, layoutType = 'dot',
+                                                   attrs = list(graph = list(rankdir = "BT"))))
+    nodeX <- .rescale(out@renderInfo@nodes$nodeX)
+    nodeY <- .rescale(out@renderInfo@nodes$nodeY)
+    # nodeY <- abs(nodeY - max(nodeY))
+    out <- .to_lo(cbind(nodeX, nodeY))
+  } else {
+    if (!is_twomode(.data)) stop("Please declare a two-mode network.")
+    net <- as_matrix(.data)
+    nn <- dim(net)[1]
+    mm <- dim(net)[2]
+    if (center == "actors") {
+      Act <- cbind(rep(1, nrow(net)), nrm(rng(nn)))
+      Evt1 <- cbind(rep(0, ceiling(ncol(net)/2)), nrm(rng(ceiling(mm/2))))
+      Evt2 <- cbind(rep(2, floor(ncol(net)/2)), nrm(rng(floor(mm/2))))
+      crd <- rbind(Act, Evt1, Evt2)
+      crd[which(is.nan(crd))] <- 0.5
+      crd[, 2] <- crd[, 2] * cos(pi) - crd[, 1] * sin(pi)
+      rownames(crd) <- c(dimnames(net)[[1]], dimnames(net)[[2]])
+    } else if (center == "events") {
+      Act1 <- cbind(rep(0, ceiling(nrow(net)/2)), nrm(rng(ceiling(nn/2))))
+      Act2 <- cbind(rep(2, floor(nrow(net)/2)), nrm(rng(floor(nn/2))))
+      Evt <- cbind(rep(1, ncol(net)), nrm(rng(mm)))
+      crd <- rbind(Act1, Act2, Evt)
+      crd[which(is.nan(crd))] <- 0.5
+      crd[, 2] <- crd[, 2] * cos(pi) - crd[, 1] * sin(pi)
+      rownames(crd) <- c(dimnames(net)[[1]], dimnames(net)[[2]])
+    } else {
+      if (center %in% node_names(.data)) {
+        side1 <- suppressWarnings(cbind(rep(0, nrow(net)), nrm(rng(nn))))
+        side2 <- suppressWarnings(cbind(rep(2, ncol(net)), nrm(rng(mm))))
+        if (any(rownames(net) == center)) {
+          side1[,1] <- ifelse(rownames(net) == center, 1, side1[,1])
+          side1[,2] <- ifelse(rownames(net) == center, 0.5, side1[,2])
+        } else {
+          side2[,1] <- ifelse(rownames(net) == center, 1, side2[,1])
+          side2[,2] <- ifelse(rownames(net) == center, 0.5, side2[,2])
+        }
+        crd <- rbind(side1, side2)
+        crd[which(is.nan(crd))] <- 0.5
+        crd[, 2] <- crd[, 2] * cos(pi) - crd[, 1] * sin(pi)
+        rownames(crd) <- c(dimnames(net)[[1]], dimnames(net)[[2]])
+      } else stop("Please declare actors, events, or a node name as center.")
+    }
+    out <- .to_lo(crd)
   }
-  if(any(prep<0)) prep[prep<0] <- 0
-  out <- as_graphAM(prep)
-  out <- suppressMessages(Rgraphviz::layoutGraph(out, layoutType = 'dot',
-                                                 attrs = list(graph = list(rankdir = "BT"))))
-  nodeX <- .rescale(out@renderInfo@nodes$nodeX)
-  nodeY <- .rescale(out@renderInfo@nodes$nodeY)
-  # nodeY <- abs(nodeY - max(nodeY))
-  .to_lo(cbind(nodeX, nodeY))
+  out
 }
 
 #' @rdname partition_layouts
@@ -136,7 +188,7 @@ layout_tbl_graph_concentric <- function(.data, membership = NULL, radius = NULL,
     order.values <- lapply(order.by, 
                            function(b) node_attribute(.data, b))
   } else {
-    if (is_twomode(.data)) {
+    if (is_twomode(.data) & length(membership) == 2) {
       for(k in 2:length(membership)) {
       xnet <- as_matrix(to_multilevel(.data))[membership[[k-1]], 
                                               membership[[k]]]
@@ -174,7 +226,7 @@ layout_tbl_graph_multilevel <- function(.data, level = NULL, circular = FALSE) {
     if (length(level) > 1 & length(level) != length(.data)) {
       stop("Please pass the function a `level` node attribute or a vector.")
     } else if (length(level) != length(.data)) {
-      level <- node_attribute(.data, level)
+      level <- as.factor(node_attribute(.data, level))
     }
   }
   out <- igraph::set_vertex_attr(.data, "lvl", value = level)
@@ -183,8 +235,55 @@ layout_tbl_graph_multilevel <- function(.data, level = NULL, circular = FALSE) {
   .to_lo(out)
 }
 
+#' @rdname partition_layouts
+#' @export
+layout_tbl_graph_lineage <- function(.data, rank, circular = FALSE) {
+  if (length(rank) > 1 & length(rank) != length(.data)) {
+    stop("Please pass the function a `rank` node attribute or a vector.")
+  } else if (length(rank) != length(.data)) {
+    rank <- node_attribute(.data, rank)
+    if (!is.numeric(rank))
+      stop("Please declare a numeric attribute to `rank` nodes.")
+  }
+  thisRequiresBio("Rgraphviz")
+  prep <- as_matrix(.data, twomode = FALSE)
+  if(anyDuplicated(rownames(prep))){
+    rownames(prep) <- seq_len(nrow(prep))
+    colnames(prep) <- seq_len(ncol(prep))
+  }
+  if(any(prep<0)) prep[prep<0] <- 0
+  out <- as_graphAM(prep)
+  out <- suppressMessages(Rgraphviz::layoutGraph(out, layoutType = 'dot',
+                                                 attrs = list(graph = list(rankdir = "BT"))))
+  nodeX <- .rescale(out@renderInfo@nodes$nodeX)
+  names <- names(nodeX)
+  nodeY <- .rescale(rank*(-1))
+  .to_lo(.adjust(nodeX, nodeY, names))
+}
+
 .rescale <- function(vector){
   (vector - min(vector)) / (max(vector) - min(vector))
+}
+
+.adjust <- function(x, y, names) {
+  out <- data.frame(cbind(x, y, names))
+  adj <- data.frame()
+  for (k in levels(as.factor(y))) {
+    a <- subset(out, y == k)
+    if (length(a[,1]) == 1) {
+      a[,1] <- ifelse(a[,1] > 0.8, as.numeric(a[,1])*0.8,
+                      ifelse(a[,1] < 0.2, as.numeric(a[,1])*1.2,
+                             as.numeric(a[,1])))
+    } else if (length(a[,1]) > 2) {
+      a[,1] <- seq(min(a[,1]), max(a[,1]), len = length(a[,1]))
+    }
+    adj <- rbind(adj, a)
+  }
+  name <- data.frame(names = out[,3])
+  out <- dplyr::left_join(name, adj, by = "names")
+  out <- apply(out[,2:3], 2, as.numeric)
+  rownames(out) <- name$names
+  out
 }
 
 .to_lo <- function(mat){
@@ -237,7 +336,7 @@ getNNvec <- function(.data, members){
   })
 }
 
-getCoordinates <- function(x, r){
+getCoordinates <- function(x, r) {
   l <- length(x)
   d <- 360/l
   c1 <- seq(0, 360, d)
@@ -249,4 +348,30 @@ getCoordinates <- function(x, r){
                   FUN.VALUE = numeric(2)))
   rownames(tmp) <- x
   tmp
+}
+
+rng <- function(r) {
+  if (r == 1L) return(0)
+  if (r > 1L) {
+    x <- vector()
+    x <- append(x, (-1))
+    for (i in 1:(r - 1)) x <- append(x, ((-1) + (2L/(r - 1L)) * i))
+    return(x * (r/50L))
+  } else stop("no negative values")
+}
+
+nrm <- function(x, digits = 3) {
+  if (isTRUE(length(x) == 1L) == TRUE) return(x)
+  if (is.array(x) == TRUE) {
+    xnorm <- (x[, 1] - min(x[, 1]))/(max(x[, 1]) - min(x[, 1]))
+    rat <- (max(x[, 1]) - min(x[, 1]))/(max(x[, 2]) - min(x[, 2]))
+    ynorm <- ((x[, 2] - min(x[, 2]))/(max(x[, 2]) - min(x[, 2]))) * (rat)
+    ifelse(isTRUE(rat > 0) == FALSE,
+           ynorm <- ((x[, 2] - min(x[, 2]))/(max(x[, 2]) -
+                                               min(x[, 2]))) * (1L/rat), NA)
+    return(round(data.frame(X = xnorm, Y = ynorm), digits))
+  }
+  else if (is.vector(x) == TRUE) {
+    return(round((x - min(x))/(max(x) - min(x)), digits))
+  }
 }

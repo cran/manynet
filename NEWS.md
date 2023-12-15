@@ -1,3 +1,84 @@
+# manynet 0.3.0
+
+2023-12-15
+
+## Package
+
+* Overhaul of the README to summarise many of the unique aspects of the package
+
+## Making
+
+* Added `as_tidygraph()` method for diff_model objects
+* Added `as_siena()` method for tidygraph objects
+
+## Modifying
+
+* Manipulating functions now called Modifying
+* `to_waves()` now works on diff_model objects, add attributes and names
+* `is_multiplex()` now recognises a tie/edge 'type' attribute as evidence of multiplexity
+* Deleted unnecessary reexports from other packages
+  - `igraph::is_bipartite()` is superseded by `is_twomode()`
+  - `tidygraph::activate()` is superseded by `mutate_ties()` and similar functions
+* Fixed bug by replacing older `igraph::as_incidence_matrix()` and `igraph::graph_from_incidence_matrix()`
+with `igraph::as_biadjacency_matrix()` and `igraph::graph_from_biadjacency_matrix()`
+
+## Mapping
+
+* `autographr()` now plots diff_model objects, showing the diffusion as a heatmap on the vertices
+* `autographs()` and `autographd()` now utilise network information in diff_model objects to provide better layouts 
+* Fixed bug with specifying `node_size` in `autographd()`
+* `many_palettes` replaces `iheid_palette`
+* Added new palettes, themes and scales for graphs
+  - `theme_ethz()`, `scale_color_ethz()`/`scale_colour_ethz()`, and `scale_fill_ethz()` for ETH Zürich
+  - `theme_uzh()`, `scale_color_uzh()`/`scale_colour_uzh()`, and `scale_fill_uzh()` for Uni Zürich
+  - `theme_rug()`, `scale_color_rug()`/`scale_colour_rug()`, and `scale_fill_rug()` for Uni Gröningen
+
+## Data
+
+* Added `ison_physicians` data that includes four, multiplex networks with adoption data
+
+# manynet 0.2.10
+
+2023-12-06
+
+## Package
+
+* Fixed documentation issues with `run_tute()`
+
+## Making
+
+* Added `read_graphml()` and `write_graphml()` for importing and exporting graphml objects, mostly wrappers for igraph functions.
+
+## Mapping
+
+* `autographd()` and `autographs()` can now be used for plotting diffusion models.
+  * Updates to `to_waves()` and `autographd()` to account for 'exposed' nodes in diffusion models.
+* Updates to layouts
+  * Updates to `hierarchical` layout so that node name can be specified for centering the layout
+  * Updated `theme_heid()` layout
+
+## Data
+
+* Added faction attribute to `ison_starwars` data, thanks to coding by Yichen Shen and Tiphaine Aeby
+
+# manynet 0.2.9
+
+2023-11-15
+
+## Package 
+
+* Updated `run_tute()`function to "fuzzy" match tutorial names
+
+## Mapping
+
+* Added `+.ggplot()` method for visualising multiple plots in the same pane
+* Added custom theme `theme_iheid` for plots
+* Added custom `scale_` family of functions for changing colour scales in plots 
+* Updated `autographr()`:
+  * Added "center" option for hierarchy layout that places events or actors in the middle alike "bip" and "bip3" layouts
+  * Added "lineage" layout that fixes node positions according to values in y axis
+* Fixed bugs with `autographd()` function
+
 # manynet 0.2.8
 
 2023-11-02

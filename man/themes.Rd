@@ -3,17 +3,23 @@
 \name{themes}
 \alias{themes}
 \alias{theme_iheid}
+\alias{theme_ethz}
+\alias{theme_uzh}
+\alias{theme_rug}
 \title{Many themes}
 \usage{
-theme_iheid(base_size = 12, base_family = "sans")
+theme_iheid(base_size = 12, base_family = "Times")
+
+theme_ethz(base_size = 12, base_family = "serif")
+
+theme_uzh(base_size = 12, base_family = "sans")
+
+theme_rug(base_size = 12, base_family = "mono")
 }
 \arguments{
 \item{base_size}{Font size, by default 12.}
 
 \item{base_family}{Font family, by default "sans".}
-}
-\value{
-Themes the current ggraph to current IHEID guidelines.
 }
 \description{
 These functions enable graphs to be easily and quickly themed,

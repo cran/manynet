@@ -11,40 +11,60 @@
 \alias{scale_fill_sdgs}
 \alias{scale_colour_sdgs}
 \alias{scale_color_sdgs}
-\title{IHEID color scales}
+\alias{scale_fill_ethz}
+\alias{scale_colour_ethz}
+\alias{scale_color_ethz}
+\alias{scale_fill_uzh}
+\alias{scale_colour_uzh}
+\alias{scale_color_uzh}
+\alias{scale_fill_rug}
+\alias{scale_colour_rug}
+\alias{scale_color_rug}
+\title{Many scales}
 \usage{
-scale_fill_iheid(palette = "IHEID", direction = 1, ...)
+scale_fill_iheid(direction = 1, ...)
 
-scale_colour_iheid(palette = "IHEID", direction = 1, ...)
+scale_colour_iheid(direction = 1, ...)
 
-scale_color_iheid(palette = "IHEID", direction = 1, ...)
+scale_color_iheid(direction = 1, ...)
 
-scale_fill_centres(palette = "Centres", direction = 1, ...)
+scale_fill_centres(direction = 1, ...)
 
-scale_colour_centres(palette = "Centres", direction = 1, ...)
+scale_colour_centres(direction = 1, ...)
 
-scale_color_centres(palette = "Centres", direction = 1, ...)
+scale_color_centres(direction = 1, ...)
 
-scale_fill_sdgs(palette = "SDGs", direction = 1, ...)
+scale_fill_sdgs(direction = 1, ...)
 
-scale_colour_sdgs(palette = "SDGs", direction = 1, ...)
+scale_colour_sdgs(direction = 1, ...)
 
-scale_color_sdgs(palette = "SDGs", direction = 1, ...)
+scale_color_sdgs(direction = 1, ...)
+
+scale_fill_ethz(direction = 1, ...)
+
+scale_colour_ethz(direction = 1, ...)
+
+scale_color_ethz(direction = 1, ...)
+
+scale_fill_uzh(direction = 1, ...)
+
+scale_colour_uzh(direction = 1, ...)
+
+scale_color_uzh(direction = 1, ...)
+
+scale_fill_rug(direction = 1, ...)
+
+scale_colour_rug(direction = 1, ...)
+
+scale_color_rug(direction = 1, ...)
 }
 \arguments{
-\item{palette}{Name of the palette. Current choices are:
-\code{IHEID}, \code{Centres}, and \code{SDGs}.}
-
 \item{direction}{Direction for using palette colors.}
 
 \item{...}{Extra arguments passed to \code{ggplot2::discrete_scale()}.}
 }
 \description{
-IHEID color scales
-
-Centres color scales
-
-SDGs color scales
+These functions enable to add color scales to be graphs.
 }
 \examples{
 #ison_brandes \%>\%

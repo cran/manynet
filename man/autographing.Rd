@@ -29,13 +29,15 @@ autographs(netlist, ...)
 
 autographd(
   tlist,
-  keep_isolates = TRUE,
-  layout = "stress",
+  layout,
   labels = TRUE,
-  node_color = NULL,
-  node_shape = NULL,
-  node_size = NULL,
-  edge_color = NULL
+  node_color,
+  node_shape,
+  node_size,
+  edge_color,
+  edge_size,
+  keep_isolates = TRUE,
+  ...
 )
 }
 \arguments{
@@ -46,6 +48,9 @@ If not declared, defaults to "triad" for networks with 3 nodes,
 "quad" for networks with 4 nodes,
 "stress" for all other one mode networks,
 or "hierarchy" for two mode networks.
+For "hierarchy" layout, one can further split graph by
+declaring the "center" argument as the "events", "actors",
+or by declaring a node name.
 For "concentric" layout algorithm please declare the "membership" as an
 extra argument.
 The "membership" argument expects either a quoted node attribute present
@@ -55,7 +60,12 @@ as extra argument.
 The "level" argument expects either a quoted node attribute present
 in data or vector with the same length as nodes to hierarchically
 order categories.
-If "level" is missing, function will look for 'lvl' node attribute in data.}
+If "level" is missing, function will look for 'lvl' node attribute in data.
+The "lineage" layout ranks nodes in Y axis according to values.
+For "lineage" layout algorithm please declare the "rank"
+as extra argument.
+The "rank" argument expects either a quoted node attribute present
+in data or vector with the same length as nodes.}
 
 \item{labels}{Logical, whether to print node names
 as labels if present.}
@@ -133,6 +143,9 @@ with sensible defaults
 }}
 \examples{
 #autographr(ison_adolescents)
+#ison_adolescents \%>\% 
+#  mutate(year = rep(c(1985, 1990, 1995, 2000), times = 2)) \%>\%
+#  autographr(layout = "lineage", rank = "year")
 #autographr(ison_algebra, layout = "circle", 
 #           node_size = 8, node_color = "orange", node_shape = "square",
 #           edge_color = "blue", edge_size = 2)
@@ -149,9 +162,11 @@ with sensible defaults
 #           edge_size = migraph::tie_closeness(ison_karateka))
 #autographr(ison_southern_women, layout = "concentric", 
 #           node_color = "type", membership = "type")
+#autographr(ison_southern_women, layout = "hierarchy", center = "events")
 #autographr(ison_lotr, layout = "multilevel",
-#           node_color = "Race", node_shape = , level = "Race")
+#           node_color = "Race", level = "Race")
 #autographs(to_egos(ison_adolescents))
+#autographs(migraph::play_diffusion(ison_adolescents))
 #ison_adolescents \%>\%
 # mutate_ties(year = sample(1995:1998, 10, replace = TRUE)) \%>\%
 # to_waves(attribute = "year") \%>\%
@@ -161,11 +176,13 @@ with sensible defaults
 #        color = rep(c("blue", "red"), times = 4),
 #        size = sample(4:16, 8, replace = TRUE)) \%>\%
 # mutate_ties(year = sample(1995:1998, 10, replace = TRUE),
-#        e_color = sample(c("yellow", "green"), 10, replace = TRUE)) \%>\%
+#             e_color = sample(c("yellow", "green"), 10, replace = TRUE)) \%>\%
 # to_waves(attribute = "year") \%>\%
 # autographd(keep_isolates = FALSE, layout = "circle", node_shape = "shape",
-#            node_color = "color", node_size =  "size",
-#            edge_color = "e_color")
+#            node_color = "color", node_size =  "size", edge_color = "e_color")
+#autographd(play_diffusion(ison_adolescents, seeds = 4), layout = "circle")
+#autographd(play_diffusion(ison_adolescents, seeds = 4, recovery = 0.2),
+#           layout = "circle")
 }
 \seealso{
 Other mapping: 
