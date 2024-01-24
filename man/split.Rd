@@ -7,7 +7,7 @@
 \alias{to_components}
 \alias{to_waves}
 \alias{to_slices}
-\title{Tools for splitting networks, graphs, and matrices into lists}
+\title{Splitting networks into lists}
 \usage{
 to_egos(.data, max_dist = 1, min_dist = 0)
 
@@ -15,12 +15,12 @@ to_subgraphs(.data, attribute)
 
 to_components(.data)
 
-to_waves(.data, attribute = "wave", panels = NULL)
+to_waves(.data, attribute = "wave", panels = NULL, cumulative = FALSE)
 
 to_slices(.data, attribute = "time", slice = NULL)
 }
 \arguments{
-\item{.data}{An object of a \code{{manynet}}-consistent class:
+\item{.data}{An object of a manynet-consistent class:
 \itemize{
 \item matrix (adjacency or incidence) from \code{{base}} R
 \item edgelist, a data frame from \code{{base}} R or tibble from \code{{tibble}}
@@ -43,6 +43,9 @@ and 2 excludes ego's direct alters.}
 NULL by default.
 That is, a list of networks for every available wave is returned.
 Users can also list specific waves they want to select.}
+
+\item{cumulative}{Whether to make wave ties cumulative.
+FALSE by default. That is, each wave is treated isolated.}
 
 \item{slice}{Character string or character list indicating the date(s)
 or integer(s) range used to slice data (e.g slice = c(1:2, 3:4)).}
@@ -95,20 +98,21 @@ ison_adolescents \%>\%
   mutate_ties(wave = sample(1995:1998, 10, replace = TRUE)) \%>\%
   to_waves(attribute = "wave")
 ison_adolescents \%>\%
-  mutate_ties(wave = sample(1995:1998, 10, replace = TRUE)) \%>\%
-  to_waves(attribute = "wave", panels = c(1995, 1996))
-ison_adolescents \%>\%
   mutate_ties(time = 1:10, increment = 1) \%>\% 
   add_ties(c(1,2), list(time = 3, increment = -1)) \%>\% 
   to_slices(slice = 7)
 }
 \seealso{
-Other manipulations: 
-\code{\link{add}},
+Other modifications: 
+\code{\link{add_nodes}()},
+\code{\link{add_ties}()},
+\code{\link{as}()},
 \code{\link{from}},
 \code{\link{miss}},
 \code{\link{reformat}},
-\code{\link{tidy}},
-\code{\link{transform}()}
+\code{\link{to_levels}},
+\code{\link{to_paths}},
+\code{\link{to_project}},
+\code{\link{to_scope}}
 }
-\concept{manipulations}
+\concept{modifications}
