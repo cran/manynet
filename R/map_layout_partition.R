@@ -55,13 +55,16 @@
 NULL
 
 #' @rdname partition_layouts
+#' @examples
+#' #autographr(ison_southern_women, layout = "hierarchy", center = "events",
+#' #           node_color = "type", node_size = 3)
 #' @export
 layout_tbl_graph_hierarchy <- function(.data, center = NULL,
                                        circular = FALSE, times = 1000) {
   if (is.null(center)) {
     thisRequiresBio("Rgraphviz")
     prep <- as_matrix(.data, twomode = FALSE)
-    if(anyDuplicated(rownames(prep))){
+    if(anyDuplicated(rownames(prep))) {
       rownames(prep) <- seq_len(nrow(prep))
       colnames(prep) <- seq_len(ncol(prep))
     }
@@ -84,7 +87,6 @@ layout_tbl_graph_hierarchy <- function(.data, center = NULL,
       Evt2 <- cbind(rep(2, floor(ncol(net)/2)), nrm(rng(floor(mm/2))))
       crd <- rbind(Act, Evt1, Evt2)
       crd[which(is.nan(crd))] <- 0.5
-      crd[, 2] <- crd[, 2] * cos(pi) - crd[, 1] * sin(pi)
       rownames(crd) <- c(dimnames(net)[[1]], dimnames(net)[[2]])
     } else if (center == "events") {
       Act1 <- cbind(rep(0, ceiling(nrow(net)/2)), nrm(rng(ceiling(nn/2))))
@@ -92,7 +94,6 @@ layout_tbl_graph_hierarchy <- function(.data, center = NULL,
       Evt <- cbind(rep(1, ncol(net)), nrm(rng(mm)))
       crd <- rbind(Act1, Act2, Evt)
       crd[which(is.nan(crd))] <- 0.5
-      crd[, 2] <- crd[, 2] * cos(pi) - crd[, 1] * sin(pi)
       rownames(crd) <- c(dimnames(net)[[1]], dimnames(net)[[2]])
     } else {
       if (center %in% node_names(.data)) {
@@ -107,7 +108,6 @@ layout_tbl_graph_hierarchy <- function(.data, center = NULL,
         }
         crd <- rbind(side1, side2)
         crd[which(is.nan(crd))] <- 0.5
-        crd[, 2] <- crd[, 2] * cos(pi) - crd[, 1] * sin(pi)
         rownames(crd) <- c(dimnames(net)[[1]], dimnames(net)[[2]])
       } else stop("Please declare actors, events, or a node name as center.")
     }
@@ -117,6 +117,8 @@ layout_tbl_graph_hierarchy <- function(.data, center = NULL,
 }
 
 #' @rdname partition_layouts
+#' @examples
+#' #autographr(ison_southern_women, layout = "alluvial")
 #' @export
 layout_tbl_graph_alluvial <- function(.data,
                                       circular = FALSE, times = 1000){
@@ -139,7 +141,7 @@ layout_tbl_graph_alluvial <- function(.data,
 #' @rdname partition_layouts
 #' @export
 layout_tbl_graph_railway <- function(.data,
-                                     circular = FALSE, times = 1000){
+                                     circular = FALSE, times = 1000) {
   res <- layout_tbl_graph_hierarchy(as_igraph(.data))
   res$x <- c(match(res[res[,2]==0,1], sort(res[res[,2]==0,1])),
              match(res[res[,2]==1,1], sort(res[res[,2]==1,1])))
@@ -157,6 +159,9 @@ layout_tbl_graph_ladder <- function(.data,
 }
 
 #' @rdname partition_layouts
+#' @examples
+#' #autographr(ison_southern_women, layout = "concentric", membership = "type",
+#' #           node_color = "type", node_size = 3)
 #' @export
 layout_tbl_graph_concentric <- function(.data, membership,
                                         radius = NULL, 
@@ -212,6 +217,9 @@ layout_tbl_graph_concentric <- function(.data, membership,
 }
 
 #' @rdname partition_layouts
+#' @examples
+#' #autographr(ison_lotr, layout = "multilevel",
+#' #           node_color = "Race", level = "Race", node_size = 3)
 #' @export
 layout_tbl_graph_multilevel <- function(.data, level, circular = FALSE) {
   if (missing(level)) {
@@ -234,57 +242,32 @@ layout_tbl_graph_multilevel <- function(.data, level, circular = FALSE) {
 }
 
 #' @rdname partition_layouts
+#' @examples
+#' # ison_adolescents %>%
+#' #   mutate(year = rep(c(1985, 1990, 1995, 2000), times = 2),
+#' #          cut = node_is_cutpoint(ison_adolescents)) %>%
+#' #   autographr(layout = "lineage", rank = "year", node_color = "cut",
+#' #              node_size = migraph::node_degree(ison_adolescents)*10)
 #' @export
 layout_tbl_graph_lineage <- function(.data, rank, circular = FALSE) {
   if (length(rank) > 1 & length(rank) != length(.data)) {
     stop("Please pass the function a `rank` node attribute or a vector.")
   } else if (length(rank) != length(.data)) {
-    rank <- node_attribute(.data, rank)
-    if (!is.numeric(rank))
-      stop("Please declare a numeric attribute to `rank` nodes.")
+    rank <- as.numeric(node_attribute(.data, rank))
   }
   thisRequiresBio("Rgraphviz")
-  prep <- as_matrix(.data, twomode = FALSE)
-  if(anyDuplicated(rownames(prep))){
-    rownames(prep) <- seq_len(nrow(prep))
-    colnames(prep) <- seq_len(ncol(prep))
-  }
-  if(any(prep<0)) prep[prep<0] <- 0
-  out <- as_graphAM(prep)
-  out <- suppressMessages(Rgraphviz::layoutGraph(out, layoutType = 'dot',
-                                                 attrs = list(graph = list(rankdir = "BT"))))
-  nodeX <- .rescale(out@renderInfo@nodes$nodeX)
-  names <- names(nodeX)
-  nodeY <- .rescale(rank*(-1))
-  .to_lo(.adjust(nodeX, nodeY, names))
+  out <- layout_tbl_graph_alluvial(
+    as_igraph(mutate(.data, type = ifelse(
+      rank > mean(rank), TRUE, FALSE)), twomode = TRUE))
+  out$x <- .rescale(rank)
+  .check_dup(out)
 }
 
 .rescale <- function(vector){
   (vector - min(vector)) / (max(vector) - min(vector))
 }
 
-.adjust <- function(x, y, names) {
-  out <- data.frame(cbind(x, y, names))
-  adj <- data.frame()
-  for (k in levels(as.factor(y))) {
-    a <- subset(out, y == k)
-    if (length(a[,1]) == 1) {
-      a[,1] <- ifelse(a[,1] > 0.8, as.numeric(a[,1])*0.8,
-                      ifelse(a[,1] < 0.2, as.numeric(a[,1])*1.2,
-                             as.numeric(a[,1])))
-    } else if (length(a[,1]) > 2) {
-      a[,1] <- seq(min(a[,1]), max(a[,1]), len = length(a[,1]))
-    }
-    adj <- rbind(adj, a)
-  }
-  name <- data.frame(names = out[,3])
-  out <- dplyr::left_join(name, adj, by = "names")
-  out <- apply(out[,2:3], 2, as.numeric)
-  rownames(out) <- name$names
-  out
-}
-
-.to_lo <- function(mat){
+.to_lo <- function(mat) {
   res <- as.data.frame(mat)
   names(res) <- c("x","y")
   res
@@ -297,6 +280,11 @@ to_list <- function(members){
   })
   names(out) <- unique(members)
   out
+}
+
+.check_dup <- function(mat) {
+  mat$y <- ifelse(duplicated(mat[c('x','y')]), mat$y*0.95, mat$y)
+  mat
 }
 
 #' @importFrom igraph degree

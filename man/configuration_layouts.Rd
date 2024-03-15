@@ -2,10 +2,13 @@
 % Please edit documentation in R/map_layout_configurations.R
 \name{configuration_layouts}
 \alias{configuration_layouts}
+\alias{layout_tbl_graph_configuration}
 \alias{layout_tbl_graph_triad}
 \alias{layout_tbl_graph_quad}
 \title{Layout algorithms based on configurational positions}
 \usage{
+layout_tbl_graph_configuration(.data, circular = FALSE, times = 1000)
+
 layout_tbl_graph_triad(.data, circular = FALSE, times = 1000)
 
 layout_tbl_graph_quad(.data, circular = FALSE, times = 1000)
@@ -26,12 +29,18 @@ Only possible for some layouts. Defaults to FALSE.}
 \item{times}{Maximum number of iterations, where appropriate}
 }
 \description{
-Layout algorithms based on configurational positions
+Configurational layouts locate nodes at symmetric coordinates
+to help illustrate the particular layouts.
+Currently "triad" and "quad" layouts are available.
+The "configuration" layout will choose the appropriate configurational
+layout automatically.
 }
 \seealso{
 Other mapping: 
 \code{\link{attributes}()},
-\code{\link{autographing}},
+\code{\link{autographr}()},
+\code{\link{autographs}()},
+\code{\link{autographt}()},
 \code{\link{partition_layouts}},
 \code{\link{properties}}
 }

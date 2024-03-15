@@ -124,6 +124,7 @@ NULL
 #' @examples 
 #'   smeg <- generate_smallworld(15, 0.025)
 #'   plot(play_diffusion(smeg, recovery = 0.4))
+#'   #autographr(play_diffusion(ison_karateka))
 #' @export
 play_diffusion <- function(.data, 
                            seeds = 1,
@@ -257,8 +258,11 @@ play_diffusions <- function(.data,
                             verbose = FALSE) {
   thisRequires("future")
   thisRequires("furrr")
+  oplan <- future::plan(strategy)
+  on.exit(future::plan(oplan), add = TRUE)
+  
   if(missing(steps)) steps <- network_nodes(.data)
-  future::plan(strategy)
+  
   out <- furrr::future_map_dfr(1:times, function(j){
       data.frame(sim = j,
                  play_diffusion(.data, 
@@ -351,7 +355,7 @@ play_learning <- function(.data,
 #'   play_segregation(latticeEg, "startValues", 0.5)
 #'   # autographr(latticeEg, node_color = "startValues", node_size = 5) + 
 #'   # autographr(play_segregation(latticeEg, "startValues", 0.2), 
-#'   #                     node_color = "startValues", node_size = 5)
+#'   #            node_color = "startValues", node_size = 5)
 #' @export
 play_segregation <- function(.data, 
                              attribute,

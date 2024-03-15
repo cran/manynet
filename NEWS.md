@@ -1,3 +1,42 @@
+# manynet 0.4.4
+
+2024-03-15
+
+## Modifying
+
+- Fixed documentation issue with `to_scope()` for CRAN resubmission
+
+# manynet 0.4.3
+
+2024-03-13
+
+## Mapping
+
+- Fixed issues with `autographr()` examples that were taking too long to run
+- Separated documentation for `autographr()`, `autographs()`, and `autographd()` functions
+- Closed #64 by adding aliases for `autographr()`, `autographs()`, and `autographd()` functions
+- Closed #65 by fixing bugs with how `node_is_infected()`, `node_is_recovery()`, `node_is_latent()` work for network lists
+
+# manynet 0.4.2
+
+2024-03-12
+
+## Making
+
+- Closed #57 by updating `play_diffusions()` to revert future plan on exit
+- Fixed bug with how `generate_random()` works for two-mode networks with specified number of ties
+
+## Mapping
+
+- Closed #6 by updating how "lineage" layout works and places nodes on Y axis
+- Closed #39 by making `autographr()` more flexible and efficient in setting variables to aesthetics
+- Updated themes to be compatible with newer and older versions of `{ggplot2}`
+- Added "configuration" layout for small triad/quad networks
+
+## Modifying
+
+- Updated `to_reciprocated.matrix()` to consistently work with matrices
+
 # manynet 0.4.1
 
 2023-12-24
