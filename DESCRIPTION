@@ -1,7 +1,8 @@
 Package: manynet
-Title: Many Ways to Make, Modify, Mark, and Map Myriad Networks
-Version: 1.0.1
-Date: 2024-07-08
+Title: Many Ways to Make, Modify, Map, Mark, and Measure Myriad
+        Networks
+Version: 1.0.2
+Date: 2024-07-20
 Description: Many tools for making, modifying, mapping, marking, measuring, 
    and motifs and memberships of many different types of networks.
    All functions operate with matrices, edge lists, and 'igraph', 'network', and 'tidygraph' objects,
@@ -16,7 +17,7 @@ License: MIT + file LICENSE
 Language: en-GB
 Encoding: UTF-8
 LazyData: true
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 Imports: dplyr (>= 1.1.0), ggplot2, ggraph, igraph (>= 1.6.0), network,
         pillar, tidygraph, minMSE
 Suggests: BiocManager, concaveman, future, furrr, gganimate, ggdendro,
@@ -40,10 +41,10 @@ Config/testthat/parallel: true
 Config/testthat/edition: 3
 Config/testthat/start-first: mark_is
 NeedsCompilation: no
-Packaged: 2024-07-08 18:53:59 UTC; hollway
+Packaged: 2024-07-20 13:24:21 UTC; hollway
 Author: James Hollway [cre, aut, ctb] (IHEID,
     <https://orcid.org/0000-0002-8361-9647>),
   Henrique Sposito [ctb] (IHEID, <https://orcid.org/0000-0003-3420-6085>)
 Maintainer: James Hollway <james.hollway@graduateinstitute.ch>
 Repository: CRAN
-Date/Publication: 2024-07-17 15:40:02 UTC
+Date/Publication: 2024-07-22 07:50:02 UTC
