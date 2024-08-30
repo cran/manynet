@@ -28,7 +28,7 @@
 #' 
 #'   These `net_*()` functions return a single numeric scalar or value.
 #' @inheritParams is
-#' @inheritParams create
+#' @inheritParams make_create
 #' @param membership A vector of partition membership.
 #' @name measure_features
 #' @family measures
@@ -256,7 +256,7 @@ net_smallworld <- function(.data,
 #' @export
 net_scalefree <- function(.data){
   if(missing(.data)) {expect_nodes(); .data <- .G()}
-  out <- igraph::fit_power_law(node_degree(.data, normalized = FALSE))
+  out <- igraph::fit_power_law(node_deg(.data))
   if ("KS.p" %in% names(out)) {
     if(out$KS.p < 0.05) 
       cat(paste("Note: Kolgomorov-Smirnov test that data",

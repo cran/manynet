@@ -1,3 +1,79 @@
+# manynet 1.0.5
+
+## Making
+
+- Added `create_degree()` for creating networks of a given degree sequence, including _k_-regular graphs
+- Added `generate_citations()` for citation models
+- Added `generate_fire()` for forest-fire models
+- Added `generate_islands()` for island models
+- `create_explicit()` now has its own documentation
+
+## Marking
+
+- Added `tie_is_triangular()` for identifying ties in triangles
+- Added `tie_is_cyclical()` for identifying ties in cycles
+- Added `tie_is_transitive()` for identifying ties involved in transitive closure
+- Added `tie_is_simmelian()` for identifying Simmelian ties
+
+## Manipulating
+
+- `generate_permutation()` renamed to `to_permuted()`
+
+## Mapping
+
+- Updated how `graphr()` plots edges in directed networks
+- Removed automatic legends for signed networks
+- Fixed other legends issues
+
+## Data
+
+- `table_data()` can now report on data from multiple packages
+  - `{manynet}` and `{migraph}` are included by default,
+  and if any are not installed they are just ignored
+- `tabe_data()` can now filter by any reported formats,
+such as 'directed' or 'twomode'
+
+## Website
+
+- Added more structure to Modifying section
+- Added more structure to Mapping section
+
+# manynet 1.0.4
+
+## Modifying
+
+- `as_matrix.igraph()` now only draws from the "weight" attribute and not, e.g. "type"
+- Fixed bug in `to_blocks()` related to categorical membership variables
+
+## Marks
+
+- Tie marks now infer networks when used within e.g. `mutate_ties()`
+
+## Memberships
+
+- `node_names()` now returns names of the form "N01" etc for unlabelled networks
+- Fixed how `plot.matrix()` works for unlabelled networks
+- Added more on density in community tutorial
+
+## Mapping
+
+- British spelling arguments now appear further back in e.g. `graphr()`
+- Fixed how `graphs()` recognises ego networks so it is compatible with other splits
+
+# manynet 1.0.3
+
+## Mapping
+
+- Fixed #73 "node_color" mapping issue with `graphr()`
+- Fixed issues with variable name warnings in `graphr()`
+- Fixed #76 numeric "node_size" issues with `graphr()` function
+- Closed #66 so `graphs()` automatically uses "star" layout to plot ego networks
+- Fixed #41 so arguments for `graphr()`, `graphs()`, and `grapht()` also accept British spellings
+
+## Memberships
+
+- Fixed bugs in hierarchical community detection algorithms for unconnected networks
+
 # manynet 1.0.2
 
 ## Package

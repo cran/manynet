@@ -14,7 +14,9 @@ graphr(
   node_group,
   edge_color,
   edge_size,
-  ...
+  ...,
+  node_colour,
+  edge_colour
 )
 }
 \arguments{
@@ -47,7 +49,7 @@ in data or vector with the same length as nodes.}
 \item{labels}{Logical, whether to print node names
 as labels if present.}
 
-\item{node_color}{Node variable to be used for coloring the nodes.
+\item{node_color, node_colour}{Node variable to be used for coloring the nodes.
 It is easiest if this is added as a node attribute to
 the graph before plotting.
 Nodes can also be colored by declaring a color instead.}
@@ -71,7 +73,7 @@ Group variables should have a minimum of 3 nodes,
 if less, number groups will be reduced by
 merging categories with lower counts into one called "other".}
 
-\item{edge_color}{Tie variable to be used for coloring the nodes.
+\item{edge_color, edge_colour}{Tie variable to be used for coloring the nodes.
 It is easiest if this is added as an edge or tie attribute
 to the graph before plotting.
 Edges can also be colored by declaring a color instead.}
