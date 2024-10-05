@@ -8,6 +8,7 @@
 \alias{node_indegree}
 \alias{node_multidegree}
 \alias{node_posneg}
+\alias{node_leverage}
 \alias{tie_degree}
 \alias{net_degree}
 \alias{net_outdegree}
@@ -30,6 +31,8 @@ node_indegree(.data, normalized = TRUE, alpha = 0)
 node_multidegree(.data, tie1, tie2)
 
 node_posneg(.data)
+
+node_leverage(.data)
 
 tie_degree(.data, normalized = TRUE)
 
@@ -99,6 +102,7 @@ there are several related shortcut functions:
 }
 \item \code{node_multidegree()} measures the ratio between types of ties in a multiplex network.
 \item \code{node_posneg()} measures the PN (positive-negative) centrality of a signed network.
+\item \code{node_leverage()} measures the leverage centrality of nodes in a network.
 \item \code{tie_degree()} measures the degree centrality of ties in a network
 \item \code{net_degree()} measures a network's degree centralization;
 there are several related shortcut functions:
@@ -115,38 +119,62 @@ first transform the salient properties using e.g. \code{\link[=to_undirected]{to
 All centrality and centralization measures return normalized measures by default,
 including for two-mode networks.
 }
+\section{Leverage centrality}{
+
+Leverage centrality concerns the degree of a node compared with that of its
+neighbours, \eqn{J}:
+\deqn{C_L(i) = \frac{1}{deg(i)} \sum_{j \in J(i)} \frac{deg(i) - deg(j)}{deg(i) + deg(j)}}
+}
+
 \examples{
 node_degree(ison_southern_women)
 tie_degree(ison_adolescents)
 net_degree(ison_southern_women, direction = "in")
 }
 \references{
+\subsection{On multimodal centrality}{
+
 Faust, Katherine. 1997.
 "Centrality in affiliation networks."
 \emph{Social Networks} 19(2): 157-191.
-\doi{10.1016/S0378-8733(96)00300-0}.
+\doi{10.1016/S0378-8733(96)00300-0}
 
 Borgatti, Stephen P., and Martin G. Everett. 1997.
 "Network analysis of 2-mode data."
 \emph{Social Networks} 19(3): 243-270.
-\doi{10.1016/S0378-8733(96)00301-2}.
+\doi{10.1016/S0378-8733(96)00301-2}
 
 Borgatti, Stephen P., and Daniel S. Halgin. 2011.
 "Analyzing affiliation networks."
 In \emph{The SAGE Handbook of Social Network Analysis},
 edited by John Scott and Peter J. Carrington, 417–33.
 London, UK: Sage.
-\doi{10.4135/9781446294413.n28}.
+\doi{10.4135/9781446294413.n28}
+}
+
+\subsection{On strength centrality}{
 
 Opsahl, Tore, Filip Agneessens, and John Skvoretz. 2010.
 "Node centrality in weighted networks: Generalizing degree and shortest paths."
 \emph{Social Networks} 32, 245-251.
 \doi{10.1016/j.socnet.2010.03.006}
+}
+
+\subsection{On signed centrality}{
 
 Everett, Martin G., and Stephen P. Borgatti. 2014.
 “Networks Containing Negative Ties.”
 \emph{Social Networks} 38:111–20.
-\doi{10.1016/j.socnet.2014.03.005}.
+\doi{10.1016/j.socnet.2014.03.005}
+}
+
+\subsection{On leverage centrality}{
+
+Joyce, Karen E., Paul J. Laurienti, Jonathan H. Burdette, and Satoru Hayasaka. 2010.
+"A New Measure of Centrality for Brain Networks".
+\emph{PLoS ONE} 5(8): e12200.
+\doi{10.1371/journal.pone.0012200}
+}
 }
 \seealso{
 \code{\link[=to_undirected]{to_undirected()}} for removing edge directions

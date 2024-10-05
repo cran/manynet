@@ -1,3 +1,135 @@
+# manynet 1.2.6
+
+## Package
+
+- Fixed errors when testing without `{concaveman}`
+- Fixed errors when plotting some examples without `{ggdendro}`
+
+# manynet 1.2.5
+
+## Package
+
+- Fixed errors when testing on extended features and Suggested packages not available
+
+# manynet 1.2.4
+
+## Package
+
+- Fixed `thisRequires()` bug by testing for interactivity
+- Dropped brokerage census examples
+
+## Modifying
+
+- Improved `to_ego()` and `to_egos()` to specify direction
+
+# manynet 1.2.3
+
+## Mapping
+
+- Fixed bug in `graphr()` where user not informed about `{concaveman}` dependency
+- Fixed `graphr()` examples
+
+# manynet 1.2.2
+
+## Package
+
+- Updated all tutorials with different themes to make them more distinctive
+- Updated centrality tutorial with gifs
+- Updated visualisation tutorial with a few extras
+
+## Modifying
+
+- Added `to_dominating()` for extracting the dominating tree of a given network
+
+## Mapping
+
+- Reworked `graphr()` to make function more concise and consistent (thanks @henriquesposito)
+  - This allows new functionality and improves debugging moving forward
+  
+## Measuring
+
+- Updated closeness centrality documentation
+- Improved `node_eccentricity()` to allow normalisation, appear in closeness documentation
+- Added `node_stress()` as a new betweenness-like centrality measure
+- Added `node_leverage()` as a new degree-like centrality measure
+
+# manynet 1.2.1
+
+## Making
+
+- All `read_*()` now print the command used to the console if the (default) file.choose() is used
+- Added `read_gml()`
+- Updated references, structure, and DOIs to make and modify documentation
+
+## Measures
+
+- Updated references, structure, and DOIs to centrality, diffusion, and other measures, as well as to marks, motifs, memberships, and models
+- Added more documentation on `node_power()`
+
+## Data
+
+- Added `ison_dolphins`
+- Added `ison_books`
+- Added `ison_blogs`
+
+# manynet 1.2.0
+
+## Package
+
+- Added progress updates, information, and unavailability errors to several functions
+  - These can be silenced by setting `options(manynet_verbosity ="quiet")`
+  - Where a feature is unavailable, users are directed to the Github issues page
+- Added console theme to color the startup and various warning or info messages
+
+## Making
+
+- Added `create_ego()` for collecting ego networks through interviews, including arguments for:
+  - Indicating whether a roster should be used, otherwise follows a name generator approach
+  - Indicating whether nodes should be interpreted, i.e. nodal attributes collected
+  - Indicating whether ties between alters should be requested
+- Added `create_motifs()` for creating networks that correspond to the isomorphic subgraphs of certain size and format
+
+## Modifying
+
+- Improved `print.mnet()`
+  - Prints multiplex types if available
+  - Prints both nodesets for two-mode networks
+- Added `add_info()` for adding grand info to tidygraph objects
+  - This includes the name of the network, node sets and ties, DOI, year and mode of collection
+- Fixed `to_unweighted()` so that it passes through unweighted networks correctly
+
+## Mapping
+
+- Added `set_manynet_theme()` to set theme (re #60), but not yet fully implemented
+
+## Marking
+
+- Improved `is_multiplex()` to ignore "name" tie attributes
+
+## Measuring
+
+- Added `node_authority()` and `node_hub()` centrality measures
+- Added `node_equivalency()` for calculating four-cycle closure by node
+- Extended `net_equivalency()` to one-mode networks
+
+## Members
+
+- Fixed `node_in_equivalence()` to use census directly
+
+## Motifs
+
+- Added plot methods for network_motif and node_motif classes that use `create_motifs()`
+- Added `node_by_dyad()` for node level dyad census
+- Added `net_by_quad()` for network level quad census
+- Fixed `node_by_quad()` to avoid `{oaqc}` dependency (#89), more flexible but slower
+- Fixed `print.node_motif()` to convert to tibble and add modes and names where available only upon print
+  - The underlying object is still a matrix, used for equivalence and blockmodelling
+
+## Data
+
+- Updated `ison_southern_women` with grand info
+- Updated `ison_laterals` with reordered nodes
+
 # manynet 1.1.0
 
 ## Package
@@ -98,7 +230,7 @@
 - `table_data()` can now report on data from multiple packages
   - `{manynet}` and `{migraph}` are included by default,
   and if any are not installed they are just ignored
-- `tabe_data()` can now filter by any reported formats,
+- `table_data()` can now filter by any reported formats,
 such as 'directed' or 'twomode'
 
 ## Website
@@ -198,7 +330,7 @@ including force-directed, layered, circular, spectral, and grid layouts
 existing network was incorrect
 - Added `generate_configuration()` for generating configuration models
 (including for two-mode networks)
-- `play_diffuson()` now includes an explicit contact argument to control the
+- `play_diffusion()` now includes an explicit contact argument to control the
 basis of exposure
 
 ## Marking
@@ -277,7 +409,7 @@ and `node_is_infected()` (closes #71)
   `net_balance()`, `net_change()`, and `net_stability()`
 - Updated properties from mapping to measuring
 - Updated attributes from mapping to measuring
-    - Renamed `node_mode()` (deprecated) to node_is_mode() since it returns a
+    - Renamed `node_mode()` (deprecated) to `node_is_mode()` since it returns a
     logical vector
     - Updated `node_attribute()` and `tie_attribute()` to return measures
     when the output is numeric

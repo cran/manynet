@@ -28,16 +28,6 @@
 #'   See `?igraph::reciprocity`
 #' @name measure_closure
 #' @family measures
-#' @references 
-#' Robins, Garry L, and Malcolm Alexander. 2004. 
-#' Small worlds among interlocking directors: Network structure and distance in bipartite graphs. 
-#' \emph{Computational & Mathematical Organization Theory} 10(1): 69–94.
-#' \doi{10.1023/B:CMOT.0000032580.12184.c0}.
-#' 
-#' Knoke, David, Mario Diani, James Hollway, and Dimitris C Christopoulos. 2021. 
-#' \emph{Multimodal Political Networks}. 
-#' Cambridge University Press. Cambridge University Press.
-#' \doi{10.1017/9781108985000}
 NULL
 
 #' @rdname measure_closure 
@@ -89,28 +79,73 @@ node_transitivity <- function(.data) {
 #'   The `net_equivalency()` function calculates the Robins and Alexander (2004) 
 #'   clustering coefficient for two-mode networks.
 #'   Note that for weighted two-mode networks, the result is divided by the average tie weight.
+#' @references 
+#' ## On equivalency or four-cycles
+#' Robins, Garry L, and Malcolm Alexander. 2004. 
+#' Small worlds among interlocking directors: Network structure and distance in bipartite graphs. 
+#' \emph{Computational & Mathematical Organization Theory} 10(1): 69–94.
+#' \doi{10.1023/B:CMOT.0000032580.12184.c0}.
 #' @examples
 #' net_equivalency(ison_southern_women)
 #' @export
 net_equivalency <- function(.data) {
   if(missing(.data)) {expect_nodes(); .data <- .G()}
-  if (manynet::is_twomode(.data)) {
+  if(is_twomode(.data)){
     mat <- manynet::as_matrix(.data)
     c <- ncol(mat)
     indegrees <- colSums(mat)
     twopaths <- crossprod(mat)
     diag(twopaths) <- 0
-    output <- sum(twopaths * (twopaths - 1)) /
+    out <- sum(twopaths * (twopaths - 1)) /
       (sum(twopaths * (twopaths - 1)) +
          sum(twopaths *
-             (matrix(indegrees, c, c) - twopaths)))
-    if (is.nan(output)) output <- 1
-    if(manynet::is_weighted(.data)) output <- output / mean(mat[mat>0])
-  } else cli::cli_abort("This function expects a two-mode network")
-  make_network_measure(output, .data)
+               (matrix(indegrees, c, c) - twopaths)))
+    if (is.nan(out)) out <- 1
+    if(manynet::is_weighted(.data)) out <- out / mean(mat[mat>0])
+  } else {
+    out <- rowSums(vapply(cli::cli_progress_along(1:net_nodes(.data)), function(i){
+      threepaths <- igraph::all_simple_paths(.data, i, cutoff = 3,
+                                             mode = "all")
+      onepaths <- threepaths[vapply(threepaths, length,
+                                    FUN.VALUE = numeric(1))==2]
+      threepaths <- threepaths[vapply(threepaths, length,
+                                      FUN.VALUE = numeric(1))==4]
+      c(sum(sapply(threepaths,"[[",4) %in% sapply(onepaths,"[[",2)),
+        length(threepaths))
+    }, FUN.VALUE = numeric(2)))
+    out <- out[1]/out[2]
+  }
+  make_network_measure(out, .data)
+}
+
+#' @rdname measure_closure
+#' @examples
+#' node_equivalency(ison_southern_women)
+#' @export
+node_equivalency <- function(.data) {
+  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  # if(is_weighted(.data))
+  #   mnet_info("Using unweighted form of the network.")
+  out <- vapply(cli::cli_progress_along(1:net_nodes(.data)), function(i){
+    threepaths <- igraph::all_simple_paths(.data, i, cutoff = 3,
+                                          mode = "all")
+    onepaths <- threepaths[vapply(threepaths, length, 
+                                  FUN.VALUE = numeric(1))==2]
+    threepaths <- threepaths[vapply(threepaths, length, 
+                                    FUN.VALUE = numeric(1))==4]
+    mean(sapply(threepaths,"[[",4) %in% sapply(onepaths,"[[",2))
+  }, FUN.VALUE = numeric(1))
+  if (any(is.nan(out))) out[is.nan(out)] <- 0
+  make_node_measure(out, .data)
 }
 
 #' @rdname measure_closure 
+#' @references 
+#' ## On congruency
+#' Knoke, David, Mario Diani, James Hollway, and Dimitris C Christopoulos. 2021. 
+#' \emph{Multimodal Political Networks}. 
+#' Cambridge University Press. Cambridge University Press.
+#' \doi{10.1017/9781108985000}
 #' @export
 net_congruency <- function(.data, object2){
   if(missing(.data)) {expect_nodes(); .data <- .G()}

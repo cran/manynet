@@ -45,25 +45,32 @@ roles in a network.
 }
 }
 \examples{
-node_by_brokerage(manynet::ison_networkers, "Discipline")
-net_by_brokerage(ison_networkers, "Discipline")
+# node_by_brokerage(ison_networkers, "Discipline")
+# net_by_brokerage(ison_networkers, "Discipline")
 node_brokering_exclusivity(ison_networkers, "Discipline")
 }
 \references{
-Gould, R.V. and Fernandez, R.M. 1989.
+\subsection{On brokerage motifs}{
+
+Gould, Roger V., and Roberto M. Fernandez. 1989.
 “Structures of Mediation: A Formal Approach to Brokerage in Transaction Networks.”
 \emph{Sociological Methodology}, 19: 89-126.
+\doi{10.2307/270949}
 
 Jasny, Lorien, and Mark Lubell. 2015.
 “Two-Mode Brokerage in Policy Networks.”
 \emph{Social Networks} 41:36–47.
-\doi{10.1016/j.socnet.2014.11.005}.
+\doi{10.1016/j.socnet.2014.11.005}
+}
+
+\subsection{On brokerage activity and exclusivity}{
 
 Hamilton, Matthew, Jacob Hileman, and Orjan Bodin. 2020.
 "Evaluating heterogeneous brokerage: New conceptual and methodological approaches
 and their application to multi-level environmental governance networks"
 \emph{Social Networks} 61: 1-10.
 \doi{10.1016/j.socnet.2019.08.002}
+}
 }
 \seealso{
 Other motifs: 

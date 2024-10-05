@@ -109,21 +109,36 @@ graphr(generate_random(12, 0.4))
 # graphr(generate_random(c(6, 6), 0.4))
 }
 \references{
-Erdos, Paul, and Alfred Renyi. (1959).
+\subsection{On random networks}{
+
+Erdos, Paul, and Alfred Renyi. 1959.
 "\href{https://www.renyi.hu/~p_erdos/1959-11.pdf}{On Random Graphs I}"
 \emph{Publicationes Mathematicae}. 6: 290–297.
+}
 
-Holland, P.W. and Leinhardt, S. 1976.
+\subsection{On configuration models}{
+
+Bollobas, Bela. 1980.
+"A Probabilistic Proof of an Asymptotic Formula for the Number of Labelled Regular Graphs".
+\emph{European Journal of Combinatorics} 1: 311-316.
+}
+
+\subsection{On dyad-census conditioned networks}{
+
+Holland, Paul W., and Samuel Leinhardt. 1976.
 “Local Structure in Social Networks.”
 In D. Heise (Ed.), \emph{Sociological Methodology}, pp 1-45.
 San Francisco: Jossey-Bass.
+}
 }
 \seealso{
 Other makes: 
 \code{\link{make_cran}},
 \code{\link{make_create}},
+\code{\link{make_ego}},
 \code{\link{make_explicit}},
 \code{\link{make_learning}},
+\code{\link{make_motifs}},
 \code{\link{make_play}},
 \code{\link{make_read}},
 \code{\link{make_stochastic}},

@@ -13,9 +13,6 @@
 #'   according to Burt (1992) and for two-mode networks according to Hollway et al (2020). 
 #'   - `node_hierarchy()` measures nodes' exposure to hierarchy,
 #'   where only one or two contacts are the source of closure.
-#'   - `node_eccentricity()` measures nodes' eccentricity or Koenig number,
-#'   a measure of farness based on number of links needed to reach 
-#'   most distant node in the network.
 #'   - `node_neighbours_degree()` measures nodes' average nearest neighbors degree,
 #'   or \eqn{knn}, a measure of the type of local environment a node finds itself in
 #'   - `tie_cohesion()` measures the ratio between common neighbors to ties'
@@ -37,6 +34,7 @@
 #' @name measure_holes
 #' @family measures
 #' @references 
+#' ## On structural holes
 #' Burt, Ronald S. 1992. 
 #' _Structural Holes: The Social Structure of Competition_. 
 #' Cambridge, MA: Harvard University Press.
@@ -146,9 +144,9 @@ node_efficiency <- function(.data){
 #' @rdname measure_holes 
 #' @references
 #' Hollway, James, Jean-Frédéric Morin, and Joost Pauwelyn. 2020.
-#' "Structural conditions for novelty: the introduction of new environmental clauses to the trade regime complex."
+#' "Structural conditions for novelty: The introduction of new environmental clauses to the trade regime complex."
 #' _International Environmental Agreements: Politics, Law and Economics_ 20 (1): 61–83.
-#' \doi{10.1007/s10784-019-09464-5}.
+#' \doi{10.1007/s10784-019-09464-5}
 #' @examples
 #' node_constraint(ison_southern_women)
 #' @export 
@@ -218,18 +216,9 @@ node_hierarchy <- function(.data){
 }
 
 #' @rdname measure_holes 
-#' @importFrom igraph eccentricity
-#' @export
-node_eccentricity <- function(.data){
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
-  out <- igraph::eccentricity(manynet::as_igraph(.data),
-                              mode = "out")
-  make_node_measure(out, .data)
-}
-
-#' @rdname measure_holes 
 #' @importFrom igraph knn
 #' @references
+#' ## On neighbours average degree
 #' Barrat, Alain, Marc Barthelemy, Romualdo Pastor-Satorras, and Alessandro Vespignani. 2004.
 #' "The architecture of complex weighted networks",
 #' _Proc. Natl. Acad. Sci._ 101: 3747.

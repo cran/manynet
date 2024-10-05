@@ -4,6 +4,7 @@
 \alias{motif_net}
 \alias{net_by_dyad}
 \alias{net_by_triad}
+\alias{net_by_quad}
 \alias{net_by_mixed}
 \title{Motifs at the network level}
 \source{
@@ -13,6 +14,8 @@ Alejandro Espinosa 'netmem'
 net_by_dyad(.data)
 
 net_by_triad(.data)
+
+net_by_quad(.data)
 
 net_by_mixed(.data, object2)
 }
@@ -41,17 +44,36 @@ a one-mode and a two-mode network.
 \examples{
 net_by_dyad(manynet::ison_algebra)
 net_by_triad(manynet::ison_adolescents)
+net_by_quad(ison_southern_women)
 marvel_friends <- to_unsigned(ison_marvel_relationships, "positive")
 (mixed_cen <- net_by_mixed(marvel_friends, ison_marvel_teams))
 }
 \references{
+\subsection{On the dyad census}{
+
+Holland, Paul W., and Samuel Leinhardt. 1970.
+"A Method for Detecting Structure in Sociometric Data".
+\emph{American Journal of Sociology}, 76: 492-513.
+\doi{10.1016/B978-0-12-442450-0.50028-6}
+
+Wasserman, Stanley, and Katherine Faust. 1994.
+"Social Network Analysis: Methods and Applications".
+Cambridge: Cambridge University Press.
+}
+
+\subsection{On the triad census}{
+
 Davis, James A., and Samuel Leinhardt. 1967.
 “\href{https://files.eric.ed.gov/fulltext/ED024086.pdf}{The Structure of Positive Interpersonal Relations in Small Groups}.” 55.
+}
+
+\subsection{On the mixed census}{
 
 Hollway, James, Alessandro Lomi, Francesca Pallotti, and Christoph Stadtfeld. 2017.
 “Multilevel Social Spaces: The Network Dynamics of Organizational Fields.”
 \emph{Network Science} 5(2): 187–212.
 \doi{10.1017/nws.2017.8}
+}
 }
 \seealso{
 Other motifs: 

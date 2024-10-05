@@ -6,6 +6,7 @@
 \alias{to_mentoring}
 \alias{to_eulerian}
 \alias{to_tree}
+\alias{to_dominating}
 \title{Modifying networks paths}
 \usage{
 to_matching(.data, mark = "type")
@@ -15,6 +16,8 @@ to_mentoring(.data, elites = 0.1)
 to_eulerian(.data)
 
 to_tree(.data)
+
+to_dominating(.data, from, direction = c("out", "in"))
 }
 \arguments{
 \item{.data}{An object of a manynet-consistent class:
@@ -42,6 +45,10 @@ for example because they are an isolate,
 a tie to themselves (a loop) will be created instead.
 Note that this is a different default behaviour than that
 described in Valente and Davis (1999).}
+
+\item{from}{The index or name of the node from which the path should be traced.}
+
+\item{direction}{String, either "out" or "in".}
 }
 \value{
 All \code{to_} functions return an object of the same class as that provided.
@@ -57,6 +64,7 @@ These functions return tidygraphs containing only special sets of ties:
 \item \code{to_eulerian()} returns only the Eulerian path within some network data.
 \item \code{to_tree()} returns the spanning tree in some network data or,
 if the data is unconnected, a forest of spanning trees.
+\item \code{to_dominating()} returns the dominating tree of the network
 }
 }
 \details{
@@ -91,14 +99,51 @@ graphr(to_mentoring(ison_adolescents))
   #graphr(to_eulerian(delete_nodes(ison_koenigsberg, "Lomse")))
 }
 \references{
-Goldberg, A V; Tarjan, R E (1986).
+\subsection{On matching}{
+
+Goldberg, Andrew V., and Robert E. Tarjan. 1986.
 "A new approach to the maximum flow problem".
-\emph{Proceedings of the eighteenth annual ACM symposium on Theory of computing – STOC '86}. p. 136.
+\emph{Proceedings of the eighteenth annual ACM symposium on Theory of computing – STOC '86}.
+136-146.
 \doi{10.1145/12130.12144}
+}
+
+\subsection{On mentoring}{
 
 Valente, Thomas, and Rebecca Davis. 1999.
 "Accelerating the Diffusion of Innovations Using Opinion Leaders",
 \emph{Annals of the American Academy of Political and Social Science} 566: 56-67.
+\doi{10.1177/000271629956600105}
+}
+
+\subsection{On Eulerian trails}{
+
+Euler, Leonard. 1736.
+"Solutio problematis ad geometriam situs pertinentis".
+\emph{Comment. Academiae Sci. I. Petropolitanae} 8: 128–140.
+
+Hierholzer, Carl. 1873.
+"Ueber die Möglichkeit, einen Linienzug ohne Wiederholung und ohne Unterbrechung zu umfahren".
+\emph{Mathematische Annalen}, 6(1): 30–32.
+\doi{10.1007/BF01442866}
+}
+
+\subsection{On minimum spanning trees}{
+
+Boruvka, Otakar. 1926.
+"O jistem problemu minimalnim".
+\emph{Prace Mor. Prirodoved. Spol. V Brne III} 3: 37-58.
+
+Kruskal, Joseph B. 1956.
+"On the shortest spanning subtree of a graph and the travelling salesman problem".
+\emph{Proceedings of the American Mathematical Society} 7(1): 48-50.
+\doi{10.1090/S0002-9939-1956-0078686-7}
+
+Prim, R.C. 1957.
+"Shortest connection networks and some generalizations".
+\emph{Bell System Technical Journal} 36(6):1389-1401.
+\doi{10.1002/j.1538-7305.1957.tb01515.x}
+}
 }
 \seealso{
 Other modifications: 

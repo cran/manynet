@@ -202,14 +202,16 @@ This can be used in in SEI, SEIS, SEIR, and SEIRS models.
   smeg <- generate_smallworld(15, 0.025)
   plot(play_diffusion(smeg, recovery = 0.4))
   #graphr(play_diffusion(ison_karateka))
-  plot(play_diffusions(smeg, times = 10))
+# plot(play_diffusions(smeg, times = 10))
 }
 \seealso{
 Other makes: 
 \code{\link{make_cran}},
 \code{\link{make_create}},
+\code{\link{make_ego}},
 \code{\link{make_explicit}},
 \code{\link{make_learning}},
+\code{\link{make_motifs}},
 \code{\link{make_random}},
 \code{\link{make_read}},
 \code{\link{make_stochastic}},

@@ -5,7 +5,7 @@
 \alias{ison_greys}
 \title{One-mode undirected network of characters hook-ups on Grey's Anatomy TV show}
 \format{
-\if{html}{\out{<div class="sourceCode">}}\preformatted{#> # A labelled, undirected network of 53 nodes and 56 ties 
+\if{html}{\out{<div class="sourceCode">}}\preformatted{#> # A labelled, undirected network of 53 nodes and 56 ties
 #> # A tibble: 53 x 7
 #>   name               sex   race  birthyear position  season sign  
 #>   <chr>              <chr> <chr>     <dbl> <chr>      <dbl> <chr> 
@@ -38,7 +38,8 @@ at Seattle Grace Hospital, later renamed as the Grey Sloan Memorial Hospital.
 \href{https://gweissman.github.io/post/grey-s-anatomy-network-of-sexual-relations/}{Gary Weissman}
 collected data on the sexual contacts between characters on the television show
 through observation of the story lines in the episodes and fan pages,
-and this data was extended by \href{http://badhessian.org/2012/09/lessons-on-exponential-random-graph-modeling-from-greys-anatomy-hook-ups/}{Benjamin Lind}
+and this data was extended by
+\href{http://badhessian.org/2012/09/lessons-on-exponential-random-graph-modeling-from-greys-anatomy-hook-ups/}{Benjamin Lind}
 including nodal attributes:
 \itemize{
 \item 'name': first and, where available, surname

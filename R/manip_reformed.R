@@ -243,18 +243,24 @@ NULL
 #'   By default 0. 
 #'   Increasing this to 1 excludes the ego,
 #'   and 2 excludes ego's direct alters.
+#' @param direction String, either "out" or "in".
 #' @export
-to_ego <- function(.data, node, max_dist = 1, min_dist = 0) UseMethod("to_ego")
+to_ego <- function(.data, node, max_dist = 1, min_dist = 0,
+                   direction = c("out","in")) UseMethod("to_ego")
 
 #' @export
-to_ego.igraph <- function(.data, node, max_dist = 1, min_dist = 0){
-  egos <- to_egos(.data, max_dist = max_dist, min_dist = min_dist)
+to_ego.igraph <- function(.data, node, max_dist = 1, min_dist = 0,
+                          direction = c("out","in")){
+  egos <- to_egos(.data, max_dist = max_dist, min_dist = min_dist,
+                  direction = direction)
   as_igraph(egos[[node]])
 }
 
 #' @export
-to_ego.tbl_graph <- function(.data, node, max_dist = 1, min_dist = 0){
-  egos <- to_egos(.data, max_dist = max_dist, min_dist = min_dist)
+to_ego.tbl_graph <- function(.data, node, max_dist = 1, min_dist = 0,
+                             direction = c("out","in")){
+  egos <- to_egos(.data, max_dist = max_dist, min_dist = min_dist,
+                  direction = direction)
   as_tidygraph(egos[[node]])
 }
 
@@ -449,6 +455,7 @@ to_blocks.tbl_graph <- function(.data, membership, FUN = mean){
 #'   - `to_eulerian()` returns only the Eulerian path within some network data.
 #'   - `to_tree()` returns the spanning tree in some network data or, 
 #'   if the data is unconnected, a forest of spanning trees.
+#'   - `to_dominating()` returns the dominating tree of the network
 #' @details
 #'   Not all functions have methods available for all object classes.
 #'   Below are the currently implemented S3 methods:
@@ -458,7 +465,7 @@ to_blocks.tbl_graph <- function(.data, membership, FUN = mean){
 #'   ```
 #' @name manip_paths
 #' @family modifications
-#' @inheritParams manip_reformat
+#' @inheritParams manip_scope
 #' @returns
 #'   All `to_` functions return an object of the same class as that provided. 
 #'   So passing it an igraph object will return an igraph object
@@ -480,9 +487,11 @@ NULL
 #'   after every \eqn{\frac{n}{2}} steps,
 #'   where \eqn{n} is the number of nodes in the network.
 #' @references 
-#'   Goldberg, A V; Tarjan, R E (1986). 
+#' ## On matching
+#'   Goldberg, Andrew V., and Robert E. Tarjan. 1986. 
 #'   "A new approach to the maximum flow problem". 
-#'   _Proceedings of the eighteenth annual ACM symposium on Theory of computing – STOC '86_. p. 136. 
+#'   _Proceedings of the eighteenth annual ACM symposium on Theory of computing – STOC '86_. 
+#'   136-146. 
 #'   \doi{10.1145/12130.12144}
 #' @param mark A logical vector marking two types or modes.
 #'   By default "type".
@@ -541,9 +550,11 @@ to_matching.matrix <- function(.data, mark = "type"){
 #'   Note that this is a different default behaviour than that
 #'   described in Valente and Davis (1999).
 #' @references
+#' ## On mentoring
 #' Valente, Thomas, and Rebecca Davis. 1999.
 #' "Accelerating the Diffusion of Innovations Using Opinion Leaders",
 #' _Annals of the American Academy of Political and Social Science_ 566: 56-67.
+#' \doi{10.1177/000271629956600105}
 #' @examples
 #' graphr(to_mentoring(ison_adolescents))
 #' @export
@@ -592,6 +603,16 @@ to_mentoring.igraph <- function(.data, elites = 0.1){
 
 #' @rdname manip_paths
 #' @importFrom igraph eulerian_path
+#' @references
+#' ## On Eulerian trails
+#' Euler, Leonard. 1736.
+#' "Solutio problematis ad geometriam situs pertinentis". 
+#' _Comment. Academiae Sci. I. Petropolitanae_ 8: 128–140.
+#' 
+#' Hierholzer, Carl. 1873. 
+#' "Ueber die Möglichkeit, einen Linienzug ohne Wiederholung und ohne Unterbrechung zu umfahren".
+#' _Mathematische Annalen_, 6(1): 30–32.
+#' \doi{10.1007/BF01442866}
 #' @examples
 #'   to_eulerian(delete_nodes(ison_koenigsberg, "Lomse"))
 #'   #graphr(to_eulerian(delete_nodes(ison_koenigsberg, "Lomse")))
@@ -619,8 +640,34 @@ to_eulerian.tbl_graph <- function(.data){
 }
 
 #' @rdname manip_paths 
+#' @references
+#' ## On minimum spanning trees
+#' Boruvka, Otakar. 1926.
+#' "O jistem problemu minimalnim".
+#' _Prace Mor. Prirodoved. Spol. V Brne III_ 3: 37-58.
+#' 
+#' Kruskal, Joseph B. 1956.
+#' "On the shortest spanning subtree of a graph and the travelling salesman problem".
+#' _Proceedings of the American Mathematical Society_ 7(1): 48-50.
+#' \doi{10.1090/S0002-9939-1956-0078686-7}
+#' 
+#' Prim, R.C. 1957.
+#' "Shortest connection networks and some generalizations".
+#' _Bell System Technical Journal_ 36(6):1389-1401.
+#' \doi{10.1002/j.1538-7305.1957.tb01515.x}
 #' @export
 to_tree <- function(.data) {
   .data <- as_igraph(.data)
-  igraph::subgraph.edges(.data, igraph::sample_spanning_tree(.data))
+  out <- igraph::subgraph.edges(.data, igraph::sample_spanning_tree(.data))
+  as_tidygraph(out)
+}
+
+#' @rdname manip_paths 
+#' @param from The index or name of the node from which the path should be traced.
+#' @export
+to_dominating <- function(.data, from, direction = c("out","in")) {
+  direction <- match.arg(direction)
+  .data <- as_igraph(.data)
+  out <- igraph::dominator_tree(.data, root = from, mode = direction)$domtree
+  as_tidygraph(out)
 }

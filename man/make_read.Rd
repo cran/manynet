@@ -9,6 +9,7 @@
 \alias{read_ucinet}
 \alias{read_dynetml}
 \alias{read_graphml}
+\alias{read_gml}
 \title{Making networks from external files}
 \source{
 \code{read_ucinet()} kindly supplied by Christian Steglich,
@@ -28,6 +29,8 @@ read_ucinet(file = file.choose())
 read_dynetml(file = file.choose())
 
 read_graphml(file = file.choose())
+
+read_gml(file = file.choose())
 }
 \arguments{
 \item{file}{A character string with the system path to the file to import.
@@ -102,8 +105,10 @@ you will need to unpack them and convert them one by one.
 Other makes: 
 \code{\link{make_cran}},
 \code{\link{make_create}},
+\code{\link{make_ego}},
 \code{\link{make_explicit}},
 \code{\link{make_learning}},
+\code{\link{make_motifs}},
 \code{\link{make_play}},
 \code{\link{make_random}},
 \code{\link{make_stochastic}},
