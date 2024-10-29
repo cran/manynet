@@ -55,11 +55,30 @@
 #' @return
 #' The currently implemented coercions or translations are:
 #'
-#' ```{r, echo = FALSE, cache = TRUE} 
-#'  knitr::kable(available_methods(c("as_edgelist","as_matrix", "as_igraph", "as_tidygraph", 
-#'  "as_network", "as_siena", "as_graphAM", "as_diffusion", "as_diffnet")))
-#'  ```
+#' |             | data.frame| diff_model| diffnet| igraph| list| matrix| network| network.goldfish| siena| tbl_graph|
+#' |:------------|----------:|----------:|-------:|------:|----:|------:|-------:|----------------:|-----:|---------:|
+#' |as_diffnet   |          0|          1|       0|      0|    0|      0|       0|                0|     0|         0|
+#' |as_diffusion |          0|          1|       1|      1|    0|      0|       0|                0|     0|         0|
+#' |as_edgelist  |          1|          0|       0|      1|    0|      1|       1|                1|     1|         1|
+#' |as_graphAM   |          1|          0|       0|      1|    0|      1|       1|                1|     1|         1|
+#' |as_igraph    |          1|          1|       1|      1|    0|      1|       1|                1|     1|         1|
+#' |as_matrix    |          1|          1|       0|      1|    0|      1|       1|                1|     1|         1|
+#' |as_network   |          1|          0|       1|      1|    0|      1|       1|                1|     1|         1|
+#' |as_siena     |          0|          0|       0|      1|    0|      0|       0|                0|     0|         1|
+#' |as_tidygraph |          1|          1|       1|      1|    1|      1|       1|                1|     1|         1|
 NULL
+
+# Nodelists ####
+
+#' @rdname manip_as
+#' @export
+as_nodelist <- function(.data) UseMethod("as_nodelist")
+
+#' @export
+as_nodelist.tbl_graph <- function(.data) {
+  out <- .data
+  dplyr::tibble(data.frame(out))
+}
 
 # Edgelists ####
 
@@ -203,7 +222,8 @@ as_matrix.igraph <- function(.data,
   if ((!is.null(twomode) && twomode) | (is.null(twomode) & is_twomode(.data))) {
     if (is_weighted(.data) | is_signed(.data)) {
       mat <- igraph::as_biadjacency_matrix(.data, sparse = FALSE,
-                                           attr = ifelse(is_weighted(.data), "weight", NULL))
+                                           attr = ifelse(is_weighted(.data), "weight", 
+                                                         ifelse(is_signed(.data), "sign", NULL)))
     } else {
       mat <- igraph::as_biadjacency_matrix(.data, sparse = FALSE,
                                            attr = NULL)
@@ -211,7 +231,8 @@ as_matrix.igraph <- function(.data,
   } else {
     if (is_weighted(.data) | is_signed(.data)) {
       mat <- igraph::as_adjacency_matrix(.data, sparse = FALSE,
-                                         attr = ifelse(is_weighted(.data), "weight", NULL))
+                                         attr = ifelse(is_weighted(.data), "weight", 
+                                                       ifelse(is_signed(.data), "sign", NULL)))
     } else {
       mat <- igraph::as_adjacency_matrix(.data, sparse = FALSE,
                                          attr = NULL)

@@ -90,7 +90,7 @@ with some continuous time variable at some time slice(s).
 }}
 \examples{
   to_egos(ison_adolescents)
-  #autographs(to_egos(ison_adolescents,2))
+  # graphs(to_egos(ison_adolescents,2))
 ison_adolescents \%>\%
   mutate(unicorn = sample(c("yes", "no"), 8,
                           replace = TRUE)) \%>\%
@@ -108,12 +108,14 @@ ison_adolescents \%>\%
 Other modifications: 
 \code{\link{manip_as}},
 \code{\link{manip_correlation}},
+\code{\link{manip_deformat}},
 \code{\link{manip_from}},
 \code{\link{manip_levels}},
 \code{\link{manip_miss}},
 \code{\link{manip_nodes}},
 \code{\link{manip_paths}},
 \code{\link{manip_permutation}},
+\code{\link{manip_preformat}},
 \code{\link{manip_project}},
 \code{\link{manip_reformat}},
 \code{\link{manip_scope}},
