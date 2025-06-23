@@ -11,7 +11,8 @@
 #'   - `is_list()` marks a network TRUE if it is a (non-igraph) list of networks,
 #'   for example a set of ego networks or a dynamic or longitudinal set of networks.
 #'   - `is_longitudinal()` marks a network TRUE if it contains longitudinal, panel data.
-#'   - `is_dynamic()` marks a network TRUE if it contains dynamic, time-stamped data
+#'   - `is_dynamic()` marks a network TRUE if it contains dynamic, time-stamped data.
+#'   - `is_changing()` marks a network TRUE if it contains changes to nodal attributes.
 #'   
 #'   All `is_*()` functions return a logical scalar (TRUE or FALSE).
 #' @param .data An object of a manynet-consistent class:
@@ -103,8 +104,10 @@ is_list <- function(.data) {
 #' @export
 is_longitudinal <- function(.data) {
   if(is_manynet(.data)) {
-    atts <- igraph::edge_attr_names(as_igraph(.data))
-    return("wave" %in% atts | "panel" %in% atts)
+    ig <- as_igraph(.data)
+    catts <- names(igraph::graph_attr(ig, "changes"))
+    tatts <- igraph::edge_attr_names(ig)
+    return("time" %in% catts | "wave" %in% tatts | "panel" %in% tatts)
   } else if(is_list(.data)){
     all(lapply(.data, net_nodes)==net_nodes(.data[[1]]))
   } 
@@ -117,6 +120,14 @@ is_longitudinal <- function(.data) {
 is_dynamic <- function(.data) {
   atts <- igraph::edge_attr_names(as_igraph(.data))
   "time" %in% atts | "beg" %in% atts | "begin" %in% atts | "start" %in% atts
+}
+
+#' @rdname mark_is
+#' @examples 
+#' is_changing(fict_starwars)
+#' @export
+is_changing <- function(.data) {
+  "changes" %in% igraph::graph_attr_names(as_igraph(.data))
 }
 
 # Formats ####
@@ -551,7 +562,7 @@ is_acyclic <- function(.data){
 is_aperiodic <- function(.data, max_path_length = 4){
   # thisRequires("minMSE") # >80x faster than e.g. cheapr::gcd()
   g <- as_igraph(.data)
-  mnet_info("Obtaining paths no greater than {max_path_length}.")
+  snet_info("Obtaining paths no greater than {max_path_length}.")
   out <- suppressMessages(.quiet(unlist(lapply(1:net_nodes(g), function(v1){
     if(igraph::degree(g, v1, mode="in") == 0) NULL else {
       goodNeighbors <- igraph::neighbors(g, igraph::V(g)[v1], mode="out")
@@ -563,7 +574,7 @@ is_aperiodic <- function(.data, max_path_length = 4){
       }))
     }
   }))))
-  mnet_info("Finding greatest common divisor of all paths.")
+  snet_info("Finding greatest common divisor of all paths.")
   out <- unique(sort(out))
   while(out[1]!=1 && length(out)>1){
     cd <- .gcd(out[1], out[2])
@@ -571,12 +582,6 @@ is_aperiodic <- function(.data, max_path_length = 4){
       out <- c(cd, out[2:length(out)])
   }
   return(as.logical(out[1]==1))
-}
-
-.quiet <- function(x) { 
-  sink(tempfile()) 
-  on.exit(sink()) 
-  invisible(force(x)) 
 }
 
 .gcd <- function(x, y){

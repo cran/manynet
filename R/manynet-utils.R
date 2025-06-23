@@ -1,6 +1,9 @@
 # defining global variables more centrally
-utils::globalVariables(c(".data", "obs", 
+utils::globalVariables(c(".data", "obs",
                          "from", "to", "name", "weight","sign","wave",
+                         "nodes","event","exposure",
+                         "student","students","colleges",
+                         "node","value","var","active","time",
                          "A","B","C","D"))
 
 # Helper function for declaring available methods
@@ -23,7 +26,7 @@ thisRequires <- function(pkgname){
                                    "package is required to run this function. Would you like to install", pkgname, "from CRAN?"))) {
       utils::install.packages(pkgname)
     } else {
-      cli::cli_abort(paste("Please install", pkgname, "from CRAN to run this function."))
+      snet_abort(paste("Please install", pkgname, "from CRAN to run this function."))
     }
   }
 }

@@ -89,6 +89,17 @@
 NULL
 
 #' @rdname measure_central_degree 
+#' @section Degree centrality: 
+#'   `r glossies$degree`
+#'   It is also sometimes called the valency of a node, \eqn{d(v)}.
+#'   The maximum degree in a network is often denoted \eqn{\Delta (G)} and
+#'   the minimum degree in a network \eqn{\delta (G)}.
+#'   The total degree of a network is the sum of all degrees, \eqn{\sum_v d(v)}.
+#'   The degree sequence is the set of all nodes' degrees,
+#'   ordered from largest to smallest.
+#'   Directed networks discriminate between 
+#'   outdegree (degree of outgoing ties) and
+#'   indegree (degree of incoming ties).
 #' @importFrom manynet as_igraph
 #' @export
 node_degree <- function (.data, normalized = TRUE, alpha = 1,
@@ -192,7 +203,7 @@ node_posneg <- function(.data){
 #' @section Leverage centrality: 
 #'   Leverage centrality concerns the degree of a node compared with that of its
 #'   neighbours, \eqn{J}:
-#'   \deqn{C_L(i) = \frac{1}{deg(i)} \sum_{j \in J(i)} \frac{deg(i) - deg(j)}{deg(i) + deg(j)}}
+#'   \deqn{C_L(i) = \frac{1}{d(i)} \sum_{j \in J(i)} \frac{d(i) - d(j)}{d(i) + d(j)}}
 #' @references
 #' ## On leverage centrality
 #' Joyce, Karen E., Paul J. Laurienti, Jonathan H. Burdette, and Satoru Hayasaka. 2010.
@@ -713,7 +724,7 @@ node_information <- function(.data, normalized = TRUE){
 node_eccentricity <- function(.data, normalized = TRUE){
   if(missing(.data)) {expect_nodes(); .data <- .G()}
   if(!is_connected(.data)) 
-    mnet_unavailable("Eccentricity centrality is only available for connected networks.")
+    snet_unavailable("Eccentricity centrality is only available for connected networks.")
   disties <- igraph::distances(as_igraph(.data))
   out <- apply(disties, 1, max)
   if(normalized) out <- 1/out
@@ -738,7 +749,7 @@ node_eccentricity <- function(.data, normalized = TRUE){
 #' @export
 node_distance <- function(.data, from, to, normalized = TRUE){
   if(missing(.data)) {expect_nodes(); .data <- .G()}
-  if(missing(from) && missing(to)) cli::cli_abort("Either 'from' or 'to' must be specified.")
+  if(missing(from) && missing(to)) snet_abort("Either 'from' or 'to' must be specified.")
   if(!missing(from)) out <- igraph::distances(as_igraph(.data), v = from) else 
     if(!missing(to)) out <- igraph::distances(as_igraph(.data), to = to)
   if(normalized) out <- out/max(out)
@@ -762,7 +773,7 @@ node_distance <- function(.data, from, to, normalized = TRUE){
 node_vitality <- function(.data, normalized = TRUE){
   if(missing(.data)) {expect_nodes(); .data <- .G()}
   .data <- as_igraph(.data)
-  out <- vapply(mnet_progress_nodes(.data), function(x){
+  out <- vapply(snet_progress_nodes(.data), function(x){
     sum(igraph::distances(.data)) - sum(igraph::distances(delete_nodes(.data, x)))
   }, FUN.VALUE = numeric(1))
   if(normalized) out <- out/max(out)
@@ -938,8 +949,8 @@ node_eigenvector <- function(.data, normalized = TRUE, scale = TRUE){
                   manynet::tie_weights(.data), NA)
   graph <- manynet::as_igraph(.data)
   
-  if(!normalized) mnet_info("This function always returns a normalized value now.")
-  if(!scale) mnet_info("This function always returns a scaled value now.")
+  if(!normalized) snet_info("This function always returns a normalized value now.")
+  if(!scale) snet_info("This function always returns a scaled value now.")
   
   if(!manynet::is_connected(.data)) 
     cli::cli_alert_warning("Unconnected networks will only allow nodes from one component to have non-zero eigenvector scores.")

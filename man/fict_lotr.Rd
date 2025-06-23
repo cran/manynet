@@ -5,9 +5,11 @@
 \alias{fict_lotr}
 \title{One-mode network of Lord of the Rings character interactions}
 \format{
-\if{html}{\out{<div class="sourceCode">}}\preformatted{#> # Lord of the Rings
+\if{html}{\out{<div class="sourceCode">}}\preformatted{#> -- # Lord of the Rings ---------------------------------------------------------
 #> # A labelled, complex, undirected network of 36 characters and 66 interaction
 #> ties
+#> 
+#> -- Nodes
 #> # A tibble: 36 x 2
 #>   name     Race  
 #>   <chr>    <chr> 
@@ -18,6 +20,8 @@
 #> 5 Denethor Human 
 #> 6 Elladan  Elf   
 #> # i 30 more rows
+#> 
+#> -- Ties
 #> # A tibble: 66 x 2
 #>    from    to
 #>   <int> <int>
@@ -28,14 +32,24 @@
 #> 5     3    10
 #> 6     9    10
 #> # i 60 more rows
+#> 
 }\if{html}{\out{</div>}}
 }
 \usage{
 data(fict_lotr)
 }
 \description{
-A network of 36 Lord of the Rings book characters and 66 interactional relationships.
+The Lord of the Rings is a beloved, epic high fantasy novel written by
+J.R.R. Tolkien.
+This is a network of 36 Lord of the Rings book characters and
+66 interactional relationships.
+
 The ties are unweighted and concern only interaction.
 Interaction can be cooperative or conflictual.
+
+In addition, the race of these characters has been coded,
+though not without debate.
+The most contentious is the coding of Tom Bombadil and Goldberry as Maiar,
+presumably coded as such to avoid having categories of one.
 }
 \keyword{datasets}

@@ -77,12 +77,7 @@ node_in_equivalence <- function(.data, census,
 
 #' @rdname member_equivalence
 #' @examples
-#' \donttest{
 #' (nse <- node_in_structural(ison_algebra))
-#' if(require("ggdendro", quietly = TRUE)){
-#' plot(nse)
-#' }
-#' }
 #' @export
 node_in_structural <- function(.data,
                                         k = c("silhouette", "elbow", "strict"),
@@ -101,13 +96,8 @@ node_in_structural <- function(.data,
 
 #' @rdname member_equivalence
 #' @examples
-#' \donttest{
 #' (nre <- node_in_regular(ison_southern_women,
 #'   cluster = "concor"))
-#' if(require("ggdendro", quietly = TRUE)){
-#' plot(nre)
-#' }
-#' }
 #' @export
 node_in_regular <- function(.data, 
                             k = c("silhouette", "elbow", "strict"),
@@ -117,12 +107,12 @@ node_in_regular <- function(.data,
                             range = 8L){
   if(missing(.data)) {expect_nodes(); .data <- .G()}
   if(is_twomode(.data)){
-    mnet_info("Since this is a two-mode network,", 
+    snet_info("Since this is a two-mode network,", 
               "using {.fn node_by_tetrad} to", 
               "profile nodes' embedding in local structures.")
     mat <- as.matrix(node_by_tetrad(.data))
   } else {
-    mnet_info("Since this is a one-mode network,", 
+    snet_info("Since this is a one-mode network,", 
               "using {.fn node_by_triad} to", 
               "profile nodes' embedding in local structures.")
     mat <- node_by_triad(.data)
@@ -134,14 +124,9 @@ node_in_regular <- function(.data,
 
 #' @rdname member_equivalence
 #' @examples
-#' \donttest{
 #' if(require("sna", quietly = TRUE)){
 #' (nae <- node_in_automorphic(ison_southern_women,
 #'   k = "elbow"))
-#' if(require("ggdendro", quietly = TRUE)){
-#' plot(nae)
-#' }
-#' }
 #' }
 #' @export
 node_in_automorphic <- function(.data,

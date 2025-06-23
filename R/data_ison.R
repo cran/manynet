@@ -32,12 +32,12 @@
 #' Multiplex graph object of friends, social, and task ties (McFarland 2001)
 #'
 #' @description
-#'  Multiplex graph object of friends, social, and task ties between 16 anonymous students.
-#'  M182 was an honors algebra class where researchers
-#'  collected friendship, social, and task ties between 16 students.
-#'  The edge attribute `friends` contains friendship ties,
-#'  where `2` = best friends, `1` = friend, and `0` is not a friend.
-#'  `social` consists of social interactions per hour,
+#'  Multiplex graph object of friends, social, and task ties 
+#'  between 16 anonymous students in an honors algebra class (M182).
+#'  Each type of tie is weighted:
+#'  the `friends` ties are weighted 
+#'  `2` = best friends, `1` = friend, and `0` is not a friend;
+#'  `social` consists of social interactions per hour;
 #'  and `tasks` consists of task interactions per hour.
 #' @docType data
 #' @keywords datasets
@@ -47,7 +47,9 @@
 #' McFarland, Daniel A. (2001) “Student Resistance.”
 #' _American Journal of Sociology_ 107(3): 612-78.
 #' \doi{10.1086/338779}.
-#' @source See also `data(studentnets.M182, package = "NetData")`
+#' @source 
+#' See also `data(studentnets.M182, package = "NetData")`
+#' 
 #' Larger comprehensive data set publicly available, contact Daniel A. McFarland for details.
 #' @format
 #'   ```{r, echo = FALSE}
@@ -454,9 +456,18 @@
 #' One-mode network of Lord of the Rings character interactions
 #'
 #' @description
-#'   A network of 36 Lord of the Rings book characters and 66 interactional relationships.
+#'   The Lord of the Rings is a beloved, epic high fantasy novel written by
+#'   J.R.R. Tolkien.
+#'   This is a network of 36 Lord of the Rings book characters and 
+#'   66 interactional relationships.
+#'   
 #'   The ties are unweighted and concern only interaction.
 #'   Interaction can be cooperative or conflictual.
+#'   
+#'   In addition, the race of these characters has been coded,
+#'   though not without debate.
+#'   The most contentious is the coding of Tom Bombadil and Goldberry as Maiar,
+#'   presumably coded as such to avoid having categories of one.
 #' @docType data
 #' @keywords datasets
 #' @name fict_lotr
@@ -532,37 +543,40 @@
 #' Seven one-mode Star Wars character interactions (Gabasova 2016)
 #'
 #' @description
-#' One-mode network dataset collected by Gabasova (2016)
-#' on the interactions between Star Wars characters in each movie from
-#' Episode 1 (The Phantom Menace) to Episode 7 (The Force Awakens).
-#' There is a separate network for each episode,
-#' and the data is listed in order from episode 1 to 7.
-#' The network for each episode varies in the number of nodes and ties.
-#' For all networks, characters are named (eg. R2-D2, Anakin, Chewbacca)
-#' and the following node attributes are provided where available:
-#' height, mass, hair color, skin color, eye color, birth year, sex, homeworld, and species.
-#' The node attribute 'faction' has also been added,
-#' denoting the faction (eg. Jedi, Rebel Alliance, etc) 
-#' that Star Wars characters belong to in each episode
-#' (coding completed with help of Yichen Shen and Tiphaine Aeby).
-#' Weighted ties represent the number of times characters speak 
-#' within the same scene of the film.
+#'   One-mode network dataset collected by Gabasova (2016)
+#'   on the interactions between Star Wars characters in each movie from
+#'   Episode 1 ("The Phantom Menace") to Episode 7 ("The Force Awakens").
+#'   
+#'   Characters are named (eg. R2-D2, Anakin, Chewbacca)
+#'   and the following node attributes are provided where available:
+#'   height, mass, hair color, skin color, eye color, birth year, sex, homeworld, and species.
+#'   The node attribute 'faction' has also been added,
+#'   denoting the faction (eg. Jedi, Rebel Alliance, etc) 
+#'   that Star Wars characters belong to in each episode
+#'   (coding completed by Yichen Shen, Tiphaine Aeby, and James Hollway).
+#'   
+#'   Weighted ties represent the number of times characters speak 
+#'   within the same scene of each film, indicated by the wave (1-7).
+#'   
+#'   Change in the composition of the network is tracked by the variable 'active',
+#'   though several other variables also change 
+#'   (mostly as Anakin becomes *spoiler alert*).
 #' @details
 #' The network for each episode may be extracted and used separately,
-#' eg. `ison_starwars[[1]]` or `ison_starwars$Episode I` for Episode 1.
+#' eg. `to_time(fict_starwars, 1)` for Episode 1.
 #' @docType data
 #' @keywords datasets
-#' @name ison_starwars
-#' @usage data(ison_starwars)
+#' @name fict_starwars
+#' @usage data(fict_starwars)
 #' @references
 #'   Gabasova, E. (2016).
 #'   \emph{Star Wars social network.}.
 #'   \doi{10.5281/zenodo.1411479}
 #' @format
 #'   ```{r, echo = FALSE}
-#'   ison_starwars
+#'   fict_starwars
 #'   ```
-"ison_starwars"
+"fict_starwars"
 
 ## Friends ####
 
@@ -721,6 +735,42 @@
 #'   ```
 "irps_wwi"
 
+## Hijackers ####
+
+#' One-mode multiplex network of relationships between 9/11 hijackers (Krebs 2002)
+#'
+#' @description
+#'   This network records two different types of relationships between and
+#'   surrounding the hijackers of four planes in the United States 
+#'   on September 11, 2001, culminating in those planes crashing into four
+#'   locations: New York's World Trade Center (North and South buildings),
+#'   as well as the Pentagon and a location in Somerset County, Pennsylvania.
+#'   
+#'   The hijackers were members of al-Qaeda.
+#'   Valdis Krebs collected further information from newspapers on the
+#'   broader network of associates of these hijackers,
+#'   reflecting on the challenges of collecting this information even
+#'   after the fact.
+#'   
+#'   The data includes two types of ties:
+#'   "trust"ed prior contacts among the hijackers,
+#'   and "association" ties among the hijackers but also their broader associates.
+#'   All associates are named, along with a logical vector about whether they
+#'   were a hijacker or not, and if so which their (eventual) target was.
+#' @docType data
+#' @keywords datasets
+#' @name irps_911
+#' @references
+#' Krebs, Valdis. 2002.
+#' "Mapping networks of terrorist cells". 
+#' _Connections_ 24(3): 43-52.
+#' @usage data(irps_911)
+#' @format 
+#'   ```{r, echo = FALSE}
+#'   irps_911
+#'   ```
+"irps_911"
+
 ## US States ####
 
 #' One-mode undirected network of US state contiguity (Meghanathan 2017)
@@ -746,3 +796,46 @@
 #'   irps_usgeo
 #'   ```
 "irps_usgeo"
+
+## Revere ####
+
+#' Two-mode network of Paul Revere's (Fischer 1995)
+#'
+#' @description
+#'   This network is of Paul Revere and 253 of his contemporary's overlapping 
+#'   memberships in seven colonial organisations.
+#'   The data has been collected by Kieran Healy from the appendix to
+#'   David Hackett Fischer's "Paul Revere's Ride".
+#'   It highlights Paul Revere's centrality in this network, and thus his
+#'   ability to mobilise the towns he rode through on horseback north
+#'   from Boston on the night of April 18, 1775.
+#'   This is in contrast to William Dawes, who set out the same night,
+#'   but south. 
+#'   Despite both men coming from similar class and backgrounds,
+#'   and riding through towns with similar demography and political leanings,
+#'   only Paul Revere was able to mobilise those he encountered,
+#'   and his social network was thought key to this.
+#' @docType data
+#' @keywords datasets
+#' @name irps_revere
+#' @usage data(irps_revere)
+#' @references
+#'   Fischer, David Hackett. 1995.
+#'   "Paul Revere's Ride".
+#'   Oxford: Oxford University Press.
+#' 
+#'   Han, Shin-Kap. 2009.
+#'   "The Other Ride of Paul Revere: The Brokerage Role in the Making of the American Revolution".
+#'   _Mobilization: An International Quarterly_, 14(2): 143-162.
+#'   \doi{10.17813/maiq.14.2.g360870167085210}
+#'   
+#'   Healy, Kieran. 2013.
+#'   "Using Metadata to find Paul Revere".
+#' @format
+#'   ```{r, echo = FALSE}
+#'   irps_revere
+#'   ```
+"irps_revere"
+
+
+

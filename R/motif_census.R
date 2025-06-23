@@ -98,7 +98,7 @@ node_by_dyad <- function(.data) {
   if(missing(.data)) {expect_nodes(); .data <- .G()}
   if(is_weighted(.data)){
     .data <- to_unweighted(.data)
-    mnet_info("Ignoring tie weights.")
+    snet_info("Ignoring tie weights.")
   }
   mat <- as_matrix(.data)
   out <- t(vapply(seq_nodes(.data), function(x){
@@ -320,7 +320,7 @@ NULL
 net_by_dyad <- function(.data) {
   if(missing(.data)) {expect_nodes(); .data <- .G()}
   if (manynet::is_twomode(.data)) {
-    mnet_unavailable("A twomode or multilevel option for a dyad census is not yet implemented.")
+    snet_unavailable("A twomode or multilevel option for a dyad census is not yet implemented.")
   } else {
     out <- suppressWarnings(igraph::dyad_census(manynet::as_igraph(.data)))
     out <- unlist(out)
@@ -341,7 +341,7 @@ net_by_dyad <- function(.data) {
 net_by_triad <- function(.data) {
   if(missing(.data)) {expect_nodes(); .data <- .G()}
   if (manynet::is_twomode(.data)) {
-    cli::cli_abort("A twomode or multilevel option for a triad census is not yet implemented.")
+    snet_abort("A twomode or multilevel option for a triad census is not yet implemented.")
   } else {
     out <- suppressWarnings(igraph::triad_census(as_igraph(.data)))
     names(out) <- c("003", "012", "102", "021D",
@@ -447,11 +447,11 @@ net_by_tetrad <- function(.data){
 net_by_mixed <- function (.data, object2) {
   if(missing(.data)) {expect_nodes(); .data <- .G()}
   if(manynet::is_twomode(.data))
-    cli::cli_abort("First object should be a one-mode network")
+    snet_abort("First object should be a one-mode network")
   if(!manynet::is_twomode(object2))
-    cli::cli_abort("Second object should be a two-mode network")
+    snet_abort("Second object should be a two-mode network")
   if(manynet::net_dims(.data)[1] != manynet::net_dims(object2)[1])
-    cli::cli_abort("Non-conformable arrays")
+    snet_abort("Non-conformable arrays")
   m1 <- manynet::as_matrix(.data)
   m2 <- manynet::as_matrix(object2)
   cp <- function(m) (-m + 1)
@@ -676,8 +676,10 @@ node_in_brokering <- function(.data, membership){
 #' Motifs of diffusion
 #' 
 #' @description
+#'   - `net_by_hazard()` measures the hazard rate or instantaneous probability that
+#'   nodes will adopt/become infected at that time.
 #'   - `node_by_exposure()` produces a motif matrix of nodes' exposure to 
-#'   infection/adoption by time step
+#'   infection/adoption by time step.
 #' 
 #' @family motifs
 #' @inheritParams motif_node
@@ -687,17 +689,95 @@ node_in_brokering <- function(.data, membership){
 NULL
 
 #' @rdname motif_diffusion
+#' @examples
+#' node_by_exposure(play_diffusion(create_tree(12)))
 #' @export
-node_by_exposure <- function(diff_model){
-  t <- NULL
-  .data <- as_tidygraph(diff_model)
-  times <- diff_model$t
-  out <- sapply(times, function(x){
-   inf <- node_is_infected(diff_model, time = x)
-   if(sum(inf)==1) as_matrix(.data)[inf,] else
-     colSums(as_matrix(.data)[inf,])
-  })
+node_by_exposure <- function(.data){
+  if(inherits(.data, "diff_model")){
+    diff_model <- as_tidygraph(.data)
+    times <- diff_model$t
+    out <- sapply(times, function(x){
+      inf <- node_is_infected(diff_model, time = x)
+      if(sum(inf)==1) as_matrix(.data)[inf,] else
+        colSums(as_matrix(.data)[inf,])
+    })
+  } else {
+    times <- as_diffusion(.data)$time
+    out <- sapply(times, function(x){
+      inf <- node_is_infected(.data, time = x)
+      if(sum(inf)==1) as_matrix(.data)[inf,] else
+        colSums(as_matrix(.data)[inf,])
+    })
+  }
   colnames(out) <- paste0("t",times)
   make_node_motif(out, .data)
 }
+
+#' @rdname motif_diffusion
+#' @section Hazard rate: 
+#' The hazard rate is the instantaneous probability of adoption/infection at each time point (Allison 1984).
+#' In survival analysis, hazard rate is formally defined as:
+#'
+#' \deqn{%
+#' \lambda(t)=\lim_{h\to +0}\frac{F(t+h)-F(t)}{h}\frac{1}{1-F(t)} %
+#' }{%
+#' \lambda(t-1)= lim (t -> +0) [F(t+h)-F(t)]/h * 1/[1-F(t)] %
+#' }
+#'
+#' By approximating \eqn{h=1}, we can rewrite the equation as
+#'
+#' \deqn{%
+#' \lambda(t)=\frac{F(t+1)-F(t)}{1-F(t)} %
+#' }{%
+#' \lambda(t-1)= [F(t+1)-F(t)]/[1-F(t)] %
+#' }
+#'
+#' If we estimate \eqn{F(t)}, 
+#' the probability of not having adopted the innovation in time \eqn{t}, 
+#' from the proportion of adopters in that time, 
+#' such that \eqn{F(t) \sim q_t/n}{F(t) ~ q(t)/n}, we now have (ultimately for \eqn{t>1}):
+#'
+#' \deqn{%
+#' \lambda(t)=\frac{q_{t+1}/n-q_t/n}{1-q_t/n} = \frac{q_{t+1} - q_t}{n - q_t} = \frac{q_t - q_{t-1}}{n - q_{t-1}} %
+#' }{%
+#' \lambda(t-1)= [q(t+1)/n-q(t)/n]/[1-q(t)/n] = [q(t+1) - q(t)]/[n - q(t)] = [q(t) - q(t-1)]/[n - q(t-1)] %
+#' }
+#' 
+#' where \eqn{q_i}{q(i)} is the number of adopters in time \eqn{t}, 
+#' and \eqn{n} is the number of vertices in the graph.
+#'
+#' The shape of the hazard rate indicates the pattern of new adopters over time.
+#' Rapid diffusion with convex cumulative adoption curves will have 
+#' hazard functions that peak early and decay over time. 
+#' Slow concave cumulative adoption curves will have 
+#' hazard functions that are low early and rise over time.
+#' Smooth hazard curves indicate constant adoption whereas 
+#' those that oscillate indicate variability in adoption behavior over time.
+#' @source `{netdiffuseR}`
+#' @references
+#' ## On hazard rates
+#' Allison, Paul D. 1984. 
+#' _Event history analysis: Regression for longitudinal event data_. 
+#' London: Sage Publications.
+#' \doi{10.4135/9781412984195}
+#'
+#' Wooldridge, Jeffrey M. 2010. 
+#' _Econometric Analysis of Cross Section and Panel Data_ (2nd ed.). 
+#' Cambridge: MIT Press.
+#' @examples
+#' # To calculate the hazard rates at each time point
+#'   smeg <- generate_smallworld(15, 0.025)
+#' net_by_hazard(play_diffusion(smeg, transmissibility = 0.3))
+#' @export
+net_by_hazard <- function(.data){
+  diff_model <- as_diffusion(.data)
+  out <- (diff_model$I - dplyr::lag(diff_model$I)) / 
+    (diff_model$n - dplyr::lag(diff_model$I))
+  if(inherits(.data, "diff_model")) 
+    net <- attr(.data, "network") else 
+      net <- .data
+  names(out) <- paste0("t", diff_model$time)
+  make_network_motif(out, net)
+}
+
 

@@ -71,6 +71,11 @@ node_richness <- function(.data, attribute){
 #'   Blau, Peter M. 1977. 
 #'   _Inequality and heterogeneity_. 
 #'   New York: Free Press.
+#'   
+#'   Page, Scott E. 2010. 
+#'   _Diversity and Complexity_. 
+#'   Princeton: Princeton University Press. 
+#'   \doi{10.1515/9781400835140}
 #' @examples
 #' marvel_friends <- to_unsigned(ison_marvel_relationships, "positive")
 #' net_diversity(marvel_friends, "Gender")
@@ -95,7 +100,7 @@ net_diversity <- function(.data, attribute, clusters = NULL){
                       numeric(1))
     names(blauout) <- paste0("Cluster ", unique(clu))
     blauout <- blauout[order(names(blauout))]
-  } else cli::cli_abort("`clusters` must be the name of a nodal variable in the object.")
+  } else snet_abort("`clusters` must be the name of a nodal variable in the object.")
   make_network_measure(blauout, .data, call = deparse(sys.call()))
 }
 

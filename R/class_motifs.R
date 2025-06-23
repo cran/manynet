@@ -33,37 +33,6 @@ print.node_motif <- function(x, ...,
   }
 }
 
-#' @export
-plot.node_motif <- function(x, ...) {
-  motifs <- dimnames(x)[[2]]
-  if("X4" %in% motifs){
-    graphs(create_motifs(4), waves = 1:11)
-  } else if("021D" %in% motifs){
-    graphs(create_motifs(3, directed = TRUE), waves = 1:16)
-  } else if("102" %in% motifs){
-    graphs(create_motifs(3), waves = 1:4)
-  } else if("Asymmetric" %in% motifs){
-    graphs(create_motifs(2, directed = TRUE), waves = 1:3)
-  } else if("Mutual" %in% motifs){
-    graphs(create_motifs(2), waves = 1:2)
-  } else mnet_unavailable("Cannot plot these motifs yet, sorry.")
-}
-  
-#' @export
-plot.network_motif <- function(x, ...) {
-  motifs <- attr(x, "names")
-  if("X4" %in% motifs){
-    graphs(create_motifs(4), waves = 1:11)
-  } else if("021D" %in% motifs){
-    graphs(create_motifs(3, directed = TRUE), waves = 1:16)
-  } else if("102" %in% motifs){
-    graphs(create_motifs(3), waves = 1:4)
-  } else if("Asymmetric" %in% motifs){
-    graphs(create_motifs(2, directed = TRUE), waves = 1:3)
-  } else if("Mutual" %in% motifs){
-    graphs(create_motifs(2), waves = 1:2)
-  } else mnet_unavailable("Cannot plot these motifs yet, sorry.")
-}
 
 # summary(node_by_triad(mpn_elite_mex),
 #         membership = node_regular_equivalence(mpn_elite_mex, "elbow"))
@@ -99,7 +68,7 @@ summary.network_motif <- function(object, ...,
   idFun <- which(grepl("net_by_", callItems))[1]
   fun <- callItems[idFun]
   dat <- callItems[idFun+1]
-  nulls <- t(vapply(mnet_progress_seq(times), function(r){
+  nulls <- t(vapply(snet_progress_seq(times), function(r){
     suppressMessages(get(fun)(get(null)(get(dat))))
   }, FUN.VALUE = numeric(length(object))))
   out <- (object - colMeans(nulls))/apply(nulls, 2, stats::sd)

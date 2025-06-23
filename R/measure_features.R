@@ -111,7 +111,7 @@ net_factions <- function(.data,
                        membership = NULL){
   if(missing(.data)) {expect_nodes(); .data <- .G()}
   if(is.null(membership)){
-    mnet_info("No membership vector assigned.",
+    snet_info("No membership vector assigned.",
               "Partitioning the network using {.fn node_in_partition}.")
     membership <- node_in_partition(.data)
   }
@@ -167,8 +167,11 @@ net_modularity <- function(.data,
                              membership = NULL, 
                              resolution = 1){
   if(missing(.data)) {expect_nodes(); .data <- .G()}
-  if(is.null(membership))
+  if(is.null(membership)){
+    snet_info("Since no membership argument has been provided,",
+              "a partition of the network into two will be calculated and used.")
     membership <- node_in_partition(.data)
+  }
   if(!is.numeric(membership)) membership <- as.numeric(as.factor(membership))
   if(!is_graph(.data)) .data <- as_igraph(.data)
   if(is_twomode(.data)){
@@ -331,14 +334,14 @@ net_balance <- function(.data) {
   count_signed_triangles <- function(.data){
     g <- manynet::as_igraph(.data)
     if (!"sign" %in% igraph::edge_attr_names(g)) {
-      cli::cli_abort("network does not have a sign edge attribute")
+      snet_abort("network does not have a sign edge attribute")
     }
     if (igraph::is_directed(g)) {
-      cli::cli_abort("g must be undirected")
+      snet_abort("g must be undirected")
     }
     eattrV <- igraph::edge_attr(g, "sign")
     if (!all(eattrV %in% c(-1, 1))) {
-      cli::cli_abort("sign may only contain -1 and 1")
+      snet_abort("sign may only contain -1 and 1")
     }
     tmat <- t(matrix(igraph::triangles(g), nrow = 3))
     if (nrow(tmat) == 0) {
@@ -370,15 +373,15 @@ net_balance <- function(.data) {
   }
   
   if (!manynet::is_signed(.data)) {
-    cli::cli_abort("network does not have a sign edge attribute")
+    snet_abort("network does not have a sign edge attribute")
   }
   if (manynet::is_directed(.data)) {
-    cli::cli_abort("object must be undirected")
+    snet_abort("object must be undirected")
   }
   g <- manynet::as_igraph(.data)
   eattrV <- igraph::edge_attr(g, "sign")
   if (!all(eattrV %in% c(-1, 1))) {
-    cli::cli_abort("sign may only contain -1 and 1")
+    snet_abort("sign may only contain -1 and 1")
   }
   tria_count <- count_signed_triangles(g)
   make_network_measure(unname((tria_count["+++"] + tria_count["+--"])/sum(tria_count)),
@@ -393,6 +396,7 @@ net_balance <- function(.data) {
 #' @description
 #'   These functions measure certain topological features of networks:
 #'   
+#'   - `net_waves()` measures the number of waves in longitudinal network data.
 #'   - `net_change()` measures the Hamming distance between two or more networks.
 #'   - `net_stability()` measures the Jaccard index of stability between two or more networks.
 #'   - `net_correlation()` measures the product-moment correlation between two networks.
@@ -405,6 +409,17 @@ net_balance <- function(.data) {
 NULL
 
 #' @rdname measure_periods 
+#' @export
+net_waves <- function(.data){
+  tie_waves <- length(unique(tie_attribute(.data, "wave")))
+  if(is_changing(.data)){
+    chltime <- as_changelist(.data)$time
+    chg_waves <- (max(chltime)+1) - max(min(chltime)-1, 0)
+  } else chg_waves <- 0
+  max(tie_waves, chg_waves)    
+}
+  
+#' @rdname measure_periods 
 #' @param object2 A network object.
 #' @export
 net_change <- function(.data, object2){
@@ -413,7 +428,7 @@ net_change <- function(.data, object2){
     
   } else if(!missing(object2)){
     .data <- list(.data, object2)
-  } else cli::cli_abort("`.data` must be a list of networks or a second network must be provided.")
+  } else snet_abort("`.data` must be a list of networks or a second network must be provided.")
   periods <- length(.data)-1
   vapply(seq.int(periods), function(x){
     net1 <- manynet::as_matrix(.data[[x]])
@@ -430,7 +445,7 @@ net_stability <- function(.data, object2){
     
   } else if(!missing(object2)){
     .data <- list(.data, object2)
-  } else cli::cli_abort("`.data` must be a list of networks or a second network must be provided.")
+  } else snet_abort("`.data` must be a list of networks or a second network must be provided.")
   periods <- length(.data)-1
   vapply(seq.int(periods), function(x){
     net1 <- manynet::as_matrix(.data[[x]])

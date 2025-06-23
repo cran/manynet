@@ -42,7 +42,6 @@
 #'   that hold various datasets in different formats. See for example:
 #'
 #'   - [UCINET data](https://sites.google.com/site/ucinetsoftware/datasets?authuser=0)
-#'   - [Pajek data](http://vlado.fmf.uni-lj.si/pub/networks/data/)
 #'   - [networkdata](https://schochastics.github.io/networkdata/)
 #'   - [GML datasets](http://www-personal.umich.edu/~mejn/netdata/)
 #'   - UCIrvine Network Data Repository
@@ -145,7 +144,7 @@ read_pajek <- function(file = file.choose(),
   paj <- network::read.paj(file, ...)
   if(!is.network(paj)){
     if(is.null(ties)) 
-      cli::cli_abort(paste("This file contains multiple networks/ties.",
+      snet_abort(paste("This file contains multiple networks/ties.",
                  "Please choose a set of ties for the imported network among:\n",
                  paste0("- '", names(paj$networks), "'", collapse = "\n "),
                  "\n by adding the name as a character string to the `ties = ` argument"))
@@ -163,7 +162,7 @@ read_pajek <- function(file = file.choose(),
   # if(grepl("Partition", utils::read.delim(file))){
   #   clus <- strsplit(paste(utils::read.delim(file)), "\\*")[[1]]
   #   clus <- clus[grepl("^Vertices|^Partition", clus)][-1]
-  #   if(length(clus) %% 2 != 0) cli::cli_abort("Unexpected .pajek file structure.")
+  #   if(length(clus) %% 2 != 0) snet_abort("Unexpected .pajek file structure.")
   #   namo <- clus[c(TRUE, FALSE)]
   #   attr <- clus[c(FALSE, TRUE)]
   #   for (i in seq_len(namo)){
@@ -186,12 +185,12 @@ read_ucinet <- function(file = file.choose()) {
   # Some basic checks of the input file
   # Check if the file is a UCINET header file
   if (!grepl(".##h$", file)) {
-    cli::cli_abort("Please select the UCINET header file with the
+    snet_abort("Please select the UCINET header file with the
                                   '.##h' extension.")
   } # Continue if header file is selected
   # Check whether there is a data file to be imported in the same folder as the
   # hearder file.
-  if (!(file.exists(sub("h$", "d", file)))) cli::cli_abort("UCINET data file not found.
+  if (!(file.exists(sub("h$", "d", file)))) snet_abort("UCINET data file not found.
                                                  Please add the '.##d' file in
                                                  the same folder as the header
                                                  file you are trying to
@@ -212,7 +211,7 @@ read_ucinet <- function(file = file.choose()) {
     # Check for correct UCINET version
     if (!(headerversion %in% c("DATE:", "V6404"))) {
       close(UCINET.header)
-      cli::cli_abort(paste("Unknown header type; try more recent UCINET file types"))
+      snet_abort(paste("Unknown header type; try more recent UCINET file types"))
     }
     # Get ymd and weekday of the UCINET file
     year <- 2000 + readBin(UCINET.header, what = "int", size = 2)
@@ -252,7 +251,7 @@ read_ucinet <- function(file = file.choose()) {
     # This check fails if it is a time series or multilevel network.
     if (!(ndim == 2 | ndim == 3 & dims[3] == 1)) {
       close(UCINET.header)
-      cli::cli_abort(paste("UCINET file with", dims[3], "levels; please convert separately"))
+      snet_abort(paste("UCINET file with", dims[3], "levels; please convert separately"))
     }
     # Extract the title of the UCINET network
     t.length <- readBin(UCINET.header, what = "int", size = 1)
@@ -471,7 +470,10 @@ write_matrix <- function(.data,
     object_name <- deparse(substitute(.data))
     out <- as_matrix(.data)
   }
-  if (missing(filename)) filename <- paste0(getwd(), "/", object_name, ".csv")
+  if (missing(filename)){
+    filename <- paste0(getwd(), "/", object_name, ".csv")
+    snet_success("Writing to {.file {filename}}")
+  } 
   # if (missing(name)) name <- object_name
   write.csv(out, file = filename, row.names = FALSE)
 }
@@ -493,7 +495,10 @@ write_edgelist <- function(.data,
     object_name <- deparse(substitute(.data))
     out <- as.data.frame(as_edgelist(.data))
   }
-  if (missing(filename)) filename <- paste0(getwd(), "/", object_name, ".csv")
+  if (missing(filename)){
+    filename <- paste0(getwd(), "/", object_name, "-edges.csv")
+    snet_success("Writing to {.file {filename}}")
+  } 
   # if (missing(name)) name <- object_name
   write.csv(out, file = filename, row.names = FALSE, ...)
 }
@@ -514,7 +519,10 @@ write_nodelist <- function(.data,
     object_name <- deparse(substitute(.data))
     out <- as.data.frame(as_tidygraph(.data))
   }
-  if (missing(filename)) filename <- paste0(getwd(), "/", object_name, ".csv")
+  if (missing(filename)){
+    filename <- paste0(getwd(), "/", object_name, "-nodes.csv")
+    snet_success("Writing to {.file {filename}}")
+  } 
   # if (missing(name)) name <- object_name
   write.csv(out, file = filename, row.names = FALSE, ...)
 }
@@ -528,6 +536,7 @@ write_pajek <- function(.data,
   if (missing(filename)) {
     object_name <- deparse(substitute(.data))
     filename <- paste0(getwd(), "/", object_name, ".net")
+    snet_success("Writing to {.file {filename}}")
   }
   igraph::write_graph(as_igraph(.data),
                       file = filename,
@@ -553,7 +562,7 @@ write_ucinet <- function(.data,
                                        ".##h here. Do you want to overwrite it?", 
                                        sep = ""))
     if (overwrite == FALSE | is.na(overwrite)) {
-      cli::cli_abort("Writing aborted by user.")
+      snet_abort("Writing aborted by user.")
     }
   }
   mat <- as_matrix(.data)
@@ -642,6 +651,7 @@ write_ucinet <- function(.data,
   close(UCINET.header)
   # continue with UCINET data file: --> Write the actual matrix
   UCINET.data <- file(paste(filename, ".##d", sep = ""), "wb")
+  snet_success("Writing to {.file {filename}}")
   for (i in seq_len(length(mat))) {
     writeBin(t(mat)[i], UCINET.data, size = 4, endian = "little")
   }
@@ -656,7 +666,10 @@ write_graphml <- function(.data,
                           # name,
                           ...) {
   # if (missing(name)) name <- deparse(substitute(.data))
-  if (missing(filename)) filename <- paste0(getwd(), "/", deparse(substitute(.data)), ".graphml")
+  if (missing(filename)){
+    filename <- paste0(getwd(), "/", deparse(substitute(.data)), ".graphml")
+    snet_success("Writing to {.file {filename}}")
+  } 
   igraph::write_graph(.data,
                       filename,
                       format = "graphml")
@@ -698,7 +711,7 @@ write_graphml <- function(.data,
 #' #        edge_color = "type", node_color = "Compilation")
 #' @export
 read_cran <- function(pkg = "all"){
-  mnet_progress_step("Downloading data about available packages from CRAN")
+  snet_progress_step("Downloading data about available packages from CRAN")
   cranInfoDF <- as.data.frame(utils::available.packages(
     utils::contrib.url(getOption("repos"), type = "source")))
   if(pkg=="all") new <- cranInfoDF$Package else

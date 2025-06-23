@@ -34,19 +34,20 @@ NULL
 #' @rdname manip_project
 #' @param similarity Method for establishing ties,
 #'   currently "count" (default), "jaccard", or "rand".
-#'   "count" calculates the number of coinciding ties,
+#'   
+#'   - "count" calculates the number of coinciding ties,
 #'   and can be interpreted as indicating the degree of opportunities
 #'   between nodes.
-#'   "jaccard" uses this count as the numerator in a proportion,
+#'   - "jaccard" uses this count as the numerator in a proportion,
 #'   where the denominator consists of any cell where either node has a tie.
 #'   It can be interpreted as opportunity weighted by participation.
-#'   "rand", or the Simple Matching Coefficient,
+#'   - "rand", or the Simple Matching Coefficient,
 #'   is a proportion where the numerator consists of the count of cells where
 #'   both nodes are present or both are absent,
 #'   over all possible cells.
 #'   It can be interpreted as the (weighted) degree of behavioral mirroring
 #'   between two nodes.
-#'   "pearson" (Pearson's coefficient) and "yule" (Yule's Q)
+#'   - "pearson" (Pearson's coefficient) and "yule" (Yule's Q)
 #'   produce correlations for valued and binary data, respectively.
 #'   Note that Yule's Q has a straightforward interpretation related to the odds ratio.
 #' @importFrom igraph bipartite_projection
@@ -92,7 +93,8 @@ to_mode1.igraph <- function(.data, similarity = c("count","jaccard","rand","pear
 
 #' @export
 to_mode1.tbl_graph <- function(.data, similarity = c("count","jaccard","rand","pearson","yule")) {
-  as_tidygraph(to_mode1(as_igraph(.data), similarity = similarity))
+  out <- as_tidygraph(to_mode1(as_igraph(.data), similarity = similarity))
+  add_info(out, name = paste("Projection", net_name(.data, prefix = "of")))
 }
 
 #' @export
@@ -141,7 +143,8 @@ to_mode2.igraph <- function(.data, similarity = c("count","jaccard","rand","pear
 
 #' @export
 to_mode2.tbl_graph <- function(.data, similarity = c("count","jaccard","rand","pearson","yule")) {
-  as_tidygraph(to_mode2(as_igraph(.data), similarity))
+  out <- as_tidygraph(to_mode2(as_igraph(.data), similarity))
+  add_info(out, name = paste("Projection", net_name(.data, prefix = "of")))
 }
 
 #' @export
@@ -217,7 +220,9 @@ to_ties.matrix <- function(.data){
 #' 
 #'   - `to_ego()` scopes a network into the local neighbourhood of a given node.
 #'   - `to_giant()` scopes a network into one including only the main component and no smaller components or isolates.
-#'   - `to_no_isolates()` scopes a network into one excluding all nodes without ties
+#'   - `to_no_isolates()` scopes a network into one excluding all nodes without ties.
+#'   - `to_no_missing()` scopes a network to one retaining only complete cases,
+#'   i.e. nodes with no missing values.
 #'   - `to_subgraph()` scopes a network into a subgraph by filtering on some node-related logical statement.
 #'   - `to_blocks()` reduces a network to ties between a given partition membership vector.
 #' @details
@@ -240,6 +245,16 @@ to_ties.matrix <- function(.data){
 #'   and passing it a network object will return a network object,
 #'   with certain modifications as outlined for each function.
 NULL
+
+#' @rdname manip_scope
+#' @export
+to_no_missing <- function(.data) UseMethod("to_no_missing")
+
+#' @export
+to_no_missing.tbl_graph <- function(.data){
+  delete_nodes(.data, !stats::complete.cases(as_nodelist(.data)))
+}
+
 
 #' @rdname manip_scope
 #' @param node Name or index of node.
@@ -267,7 +282,48 @@ to_ego.tbl_graph <- function(.data, node, max_dist = 1, min_dist = 0,
                              direction = c("out","in")){
   egos <- to_egos(.data, max_dist = max_dist, min_dist = min_dist,
                   direction = direction)
-  as_tidygraph(egos[[node]])
+  existname <- net_name(.data, prefix = "from")
+  out <- as_tidygraph(egos[[node]])
+  add_info(out, name = paste("Ego network of", node, existname))
+}
+
+#' @rdname manip_scope
+#' @param time A time point or wave at which to present the network.
+#' @export
+to_time <- function(.data, time) UseMethod("to_time")
+
+#' @export
+to_time.tbl_graph <- function(.data, time){
+  if(time > net_waves(.data)){
+    snet_info("Sorry, there are not that many waves in this dataset.",
+              "Reverting to the maximum wave:", net_waves(.data))
+    time <- net_waves(.data)
+  }
+  if(is_dynamic(.data)){
+    snet_unavailable()
+  } else if(is_longitudinal(.data)){
+    out <- .data
+    if(is_changing(out)){
+      if(any(time >= as_changelist(.data)$time)){
+        out <- apply_changes(out, time)
+      } else {
+        igraph::graph_attr(out, "changes") <- NULL
+      } 
+      if("active" %in% net_node_attributes(out)){
+        out <- out %>% 
+          filter_nodes(active) %>% 
+          select_nodes(-active)
+      }
+    }
+    if("wave" %in% net_tie_attributes(out)){
+      out %>% 
+        # trim ties
+        filter_ties(wave == time) %>% 
+        select_ties(-wave)
+    } else out
+  } else {
+    .data
+  }
 }
 
 #' @rdname manip_scope
@@ -483,7 +539,12 @@ NULL
 
 #' @rdname manip_paths
 #' @section `to_matching()`:
-#'   `to_matching()` uses `{igraph}`'s `max_bipartite_match()`
+#'   This function attempts to solve the stable matching problem,
+#'   also known as the stable marriage problem, upon a given
+#'   two-mode network (or other network with a binary mark).  
+#' 
+#'   In the basic version,
+#'   `to_matching()` uses `igraph::max_bipartite_match()`
 #'   to return a network in which each node is only tied to
 #'   one of its previous ties.
 #'   The number of these ties left is its _cardinality_,
@@ -494,8 +555,20 @@ NULL
 #'   with greedy initialization and a global relabelling
 #'   after every \eqn{\frac{n}{2}} steps,
 #'   where \eqn{n} is the number of nodes in the network.
+#'   
+#'   In the more general version, each node may have a larger capacity,
+#'   or even different capacities.
+#'   Here an implementation of the Gale-Shapley algorithm is used,
+#'   in which an iterative process of proposal and acceptance is repeated until
+#'   all are matched or have exhausted their lists of preferences.
+#'   This is, however, computationally slower.
 #' @references 
 #' ## On matching
+#'   Gale, David, and Lloyd Stowell Shapley. 1962. 
+#'   "College admissions and the stability of marriage". 
+#'   _The American Mathematical Monthly_, 69(1): 9–14. 
+#'   \doi{10.2307/2312726}
+#' 
 #'   Goldberg, Andrew V., and Robert E. Tarjan. 1986. 
 #'   "A new approach to the maximum flow problem". 
 #'   _Proceedings of the eighteenth annual ACM symposium on Theory of computing – STOC '86_. 
@@ -503,44 +576,92 @@ NULL
 #'   \doi{10.1145/12130.12144}
 #' @param mark A logical vector marking two types or modes.
 #'   By default "type".
+#' @param capacities An integer or vector of integers the same length as the
+#'   nodes in the network that describes the maximum possible degree the node
+#'   can have in the matched network.
 #' @importFrom igraph max_bipartite_match
 #' @examples 
 #' to_matching(ison_southern_women)
 #' #graphr(to_matching(ison_southern_women))
 #' @export
-to_matching <- function(.data, mark = "type") UseMethod("to_matching")
+to_matching <- function(.data, mark = "type", capacities = NULL) UseMethod("to_matching")
 
 #' @export
-to_matching.igraph <- function(.data, mark = "type"){
+to_matching.igraph <- function(.data, mark = "type", capacities = NULL){
   if(length(unique(node_attribute(.data, mark)))>2)
-    cli::cli_abort("This function currently only works with binary attributes.")
-  el <- igraph::max_bipartite_match(.data, 
-                 types = node_attribute(.data, mark))$matching
-  el <- data.frame(from = names(el), to = el)
-  out <- suppressWarnings(as_igraph(el, twomode = TRUE))
-  out <- igraph::delete_vertices(out, "NA")
-  out <- to_twomode(out, node_attribute(.data, mark))
+    snet_abort("This function currently only works with binary attributes.")
+  if(is.null(capacities)){
+    el <- igraph::max_bipartite_match(.data, 
+                                      types = node_attribute(.data, mark))$matching
+    el <- data.frame(from = names(el), to = el)
+    out <- suppressWarnings(as_igraph(el, twomode = TRUE))
+    out <- igraph::delete_vertices(out, "NA")
+    out <- to_twomode(out, node_attribute(.data, mark))
+  } else {
+    if(length(capacities) == 1) 
+      capacities <- rep(capacities, net_dims(.data)[2])
+    as_matrix(.data)
+    
+    unmatched_m1 <- 1:net_dims(.data)[1]  # First mode nodes who haven't been matched yet
+    m1_matches <- list()  # Student -> College mapping
+    m2_matches <- list()  # College -> Students mapping
+    for (m2 in 1:net_dims(.data)[2]) {
+      m2_matches[[m2]] <- c()
+    }
+    
+    # Gale-Shapley Algorithm
+    while (length(unmatched_m1) > 0) {
+      m1 <- unmatched_m1[1]
+      student_prefs <- students[[student]]
+      
+      for (college in student_prefs) {
+        # If the college has capacity, admit the student
+        if (length(college_matches[[college]]) < capacities[[college]]) {
+          college_matches[[college]] <- c(college_matches[[college]], student)
+          student_matches[[student]] <- college
+          unmatched_students <- unmatched_students[-1]  # Remove the matched student
+          break
+        } else {
+          # If college is full, check if the student can replace a current match
+          current_students <- college_matches[[college]]
+          college_prefs <- colleges[[college]]
+          
+          # Check if the college prefers this student over any current matches
+          worst_student <- current_students[which.max(sapply(current_students, function(s) which(college_prefs == s)))]
+          if (which(college_prefs == student) < which(college_prefs == worst_student)) {
+            # Replace the worst student
+            college_matches[[college]] <- setdiff(current_students, worst_student)
+            college_matches[[college]] <- c(college_matches[[college]], student)
+            student_matches[[student]] <- college
+            unmatched_students <- c(unmatched_students, worst_student)
+            unmatched_students <- unmatched_students[unmatched_students != student]
+            break
+          }
+        }
+      }
+    }
+  }
   out
 }
 
 #' @export
-to_matching.tbl_graph <- function(.data, mark = "type"){
-  as_tidygraph(to_matching.igraph(.data), mark)
+to_matching.tbl_graph <- function(.data, mark = "type", capacities = NULL){
+  as_tidygraph(to_matching.igraph(.data, mark, capacities = capacities))
 }
 
 #' @export
-to_matching.network <- function(.data, mark = "type"){
-  as_network(to_matching(as_igraph(.data), mark))
+to_matching.network <- function(.data, mark = "type", capacities = NULL){
+  as_network(to_matching(as_igraph(.data), mark, capacities = capacities))
 }
 
 #' @export
-to_matching.data.frame <- function(.data, mark = "type"){
-  as_edgelist(to_matching(as_igraph(.data), mark))
+to_matching.data.frame <- function(.data, mark = "type", capacities = NULL){
+  as_edgelist(to_matching(as_igraph(.data), mark, capacities = capacities))
 }
 
 #' @export
-to_matching.matrix <- function(.data, mark = "type"){
-  as_matrix(to_matching(as_igraph(.data), mark))
+to_matching.matrix <- function(.data, mark = "type", capacities = NULL){
+  as_matrix(to_matching(as_igraph(.data), mark, capacities = capacities))
 }
 
 #' @rdname manip_paths 
@@ -630,7 +751,7 @@ to_eulerian <- function(.data) UseMethod("to_eulerian")
 #' @export
 to_eulerian.igraph <- function(.data){
   if(!is_eulerian(.data))
-    cli::cli_abort("This is not a Eulerian graph.")
+    snet_abort("This is not a Eulerian graph.")
   out <- paste(attr(igraph::eulerian_path(.data)$vpath, "names"), 
                collapse = "-+")
   out <- create_explicit(out)
@@ -640,7 +761,7 @@ to_eulerian.igraph <- function(.data){
 #' @export
 to_eulerian.tbl_graph <- function(.data){
   if(!is_eulerian(.data))
-    cli::cli_abort("This is not a Eulerian graph.")
+    snet_abort("This is not a Eulerian graph.")
   out <- paste(attr(igraph::eulerian_path(.data)$vpath, "names"), 
                collapse = "-+")
   out <- create_explicit(out)
