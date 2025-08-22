@@ -1,15 +1,14 @@
 Package: manynet
-Title: Many Ways to Make, Modify, Map, Mark, and Measure Myriad
-        Networks
-Version: 1.5.1
-Date: 2025-06-23
-Description: Many tools for making, modifying, mapping, marking, measuring, 
+Title: Many Ways to Make, Modify, Mark, and Measure Myriad Networks
+Version: 1.6.0
+Date: 2025-08-22
+Description: Many tools for making, modifying, marking, measuring, 
    and motifs and memberships of many different types of networks.
    All functions operate with matrices, edge lists, and 'igraph', 'network', and 'tidygraph' objects,
-   and on one-mode, two-mode (bipartite), and sometimes three-mode networks.
+   on directed, multiplex, multimodal, signed, and other networks.
    The package includes functions for importing and exporting, creating and generating networks,
    modifying networks and node and tie attributes,
-   and describing and visualizing networks with sensible defaults.
+   and describing networks with sensible defaults.
 URL: https://stocnet.github.io/manynet/
 BugReports: https://github.com/stocnet/manynet/issues
 License: MIT + file LICENSE
@@ -18,13 +17,11 @@ Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.2
 Depends: R (>= 3.6.0)
-Imports: cli, dplyr (>= 1.1.0), ggplot2, ggraph, igraph (>= 2.1.0),
-        network, pillar, tidygraph
-Suggests: BiocManager, concaveman, gganimate, ggdendro, ggforce,
-        gifski, graphlayouts, knitr, learnr, methods, netdiffuseR,
-        patchwork, readxl, rmarkdown, RSiena, sna, testthat (>= 3.0.0),
-        tibble, tidyr, xml2
-Enhances: Rgraphviz
+Imports: cli, dplyr (>= 1.1.0), igraph (>= 2.1.0), network, pillar,
+        tidygraph
+Suggests: autograph, knitr, learnr, methods, netdiffuseR, readxl,
+        rmarkdown, RSiena, sna, testthat (>= 3.0.0), tibble, tidyr,
+        xml2
 Authors@R: 
     c(person(given = "James",
              family = "Hollway",
@@ -46,11 +43,11 @@ Config/testthat/parallel: true
 Config/testthat/edition: 3
 Config/testthat/start-first: mark_is
 NeedsCompilation: no
-Packaged: 2025-06-23 06:12:59 UTC; hollway
+Packaged: 2025-08-22 13:59:15 UTC; hollway
 Author: James Hollway [cre, aut, ctb] (IHEID, ORCID:
     <https://orcid.org/0000-0002-8361-9647>),
   Henrique Sposito [ctb] (ORCID: <https://orcid.org/0000-0003-3420-6085>),
   Christian Steglich [ctb]
 Maintainer: James Hollway <james.hollway@graduateinstitute.ch>
 Repository: CRAN
-Date/Publication: 2025-06-23 08:30:02 UTC
+Date/Publication: 2025-08-22 23:40:02 UTC
