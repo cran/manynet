@@ -1,16 +1,16 @@
-6dbe21ff9c215167fe1fd7b178509de5 *DESCRIPTION
+1e0ce99c6377e4b4ad10898395256cda *DESCRIPTION
 361d71c6379f4ddf09ca9c8540b8fea1 *LICENSE
-9fcd40fbe8fe9720228f35d300b267e4 *NAMESPACE
-c3d9e1ecbbaecb8892c4547cb640eac0 *NEWS.md
+4ffc455bfe296fa07a529d31e561b750 *NAMESPACE
+66685c1742d18fb09904fc1f763ac4f2 *NEWS.md
 ab215bd240d15a023ea3712aad11a278 *R/class_interface.R
 234d12832e6807bf6a449353f5951621 *R/class_marks.R
 16927fe8519137c90058ceaf8141dfab *R/class_measures.R
 c5c688164b47513365c3351507ef934d *R/class_members.R
 d8d0bff820e89900c0d29d7cfaf3d14f *R/class_models.R
 808ebac968f58b80354246be4be6725e *R/class_motifs.R
-2d521b0af8af4a084cd0387390c83c7a *R/class_networks.R
-9e6e03ee6853486799e371f54a948848 *R/data_ison.R
-2de1da10831a5ec398aa9ca44088cc09 *R/make_create.R
+f93c3bf05fe54a5474264cb968d7940f *R/class_networks.R
+27c5014fadb3cbcaf98a9c0753ef4c2e *R/data_ison.R
+8b9ab1e2eeffaff267a2f08b174a52a0 *R/make_create.R
 128107aeae55e03727b9a175481ca55c *R/make_generate.R
 5815b33b1e3a790bdac985836ef9a182 *R/make_play.R
 3979d28e6d67e0541275f41e9dd4a000 *R/make_read.R
@@ -25,9 +25,9 @@ c738385db15e86b76aa917fa459d307e *R/manip_miss.R
 52c591103e97271d25ab58cbd2b50e7b *R/manip_split.R
 ab18eff70653b45473ff744960acbbcb *R/manip_ties.R
 b3d79bef31a83db237e931806678682f *R/manynet-defunct.R
-930512a470893486d39bc484d9e8b931 *R/manynet-tutorials.R
+80ee5750dad50c9559ac34d465e1742b *R/manynet-tutorials.R
 61af0e2a03b9ac9fbdc9ba331b858e6c *R/manynet-utils.R
-38f5eb6503cd8dfc9ee8018f29b13cdb *R/mark_net.R
+96d69d20bc5d803e4cef922f71bf43e0 *R/mark_net.R
 5244d32f5d67a25409bcc49d8bf0d8a9 *R/mark_nodes.R
 91ebb673faf3e3d789d311d2a7530edc *R/mark_ties.R
 082d7329f87e2fe0738b7b7f3008226f *R/measure_attributes.R
@@ -62,6 +62,7 @@ d9037a0868957448a4e395f2afe91084 *R/zzz.R
 23679282259812363895880544d3f753 *data/irps_911.rda
 f26a44dc8a0082e22c6c8e7fe7d5ba13 *data/irps_blogs.rda
 855a9d98807553a597bcd807c608ba5b *data/irps_books.rda
+f4eee50b255760a0babf4b2c2bec638d *data/irps_nuclear_discourse.rda
 80bade9ad040521fdbd1cf3a249792e2 *data/irps_revere.rda
 8d93e40888d088afdbbbc4b73c1e9f9b *data/irps_usgeo.rda
 b97d8f26ec8f09dbedf4adb0200f609e *data/irps_wwi.rda
@@ -70,6 +71,7 @@ b97d8f26ec8f09dbedf4adb0200f609e *data/irps_wwi.rda
 81a94258f9390425d33fd8ee02d2ba63 *data/ison_brandes.rda
 8403b0a9074d70de61fdaf45f548b387 *data/ison_dolphins.rda
 55abed0f4d4fae3a33950f3531c6631d *data/ison_hightech.rda
+e29478e97e3a7d726d4e2d02bd486872 *data/ison_judo_moves.rda
 f5d9d79572c39b4b7f0ccf77e994745c *data/ison_karateka.rda
 ee57d7d3d882e297d477f126558995e7 *data/ison_koenigsberg.rda
 df2e4f75e236411ec3fca0160004fda1 *data/ison_laterals.rda
@@ -80,6 +82,7 @@ c015e82a32363c55ef215a5eab01bac3 *data/ison_monks.rda
 7da01f69f9fd8f42312e390528c3f97b *data/ison_networkers.rda
 87748cf8aa43603d74e564643b075996 *data/ison_physicians.rda
 33367469c98ebb56374ea07ae531a22e *data/ison_southern_women.rda
+94587cef6ccb196f70b8f64bee27f1cd *inst/CITATION
 6a4d73a6be7094841f5da913b39b0a42 *inst/manynet.png
 1ce77ca03aa5384541614de88f3a9b91 *inst/manynet_logo.png
 0a6b63de0cf5e98df53d9975dec2ba10 *inst/tutorials/tutorial0/tutorial0.Rmd
@@ -90,9 +93,6 @@ e6611f534f1efb2d9df7fb51777f93d9 *inst/tutorials/tutorial1/data/adols.csv
 52bb5bccd9a3b7d3dbbc28794a9b64f8 *inst/tutorials/tutorial1/data/adols.net
 52bb5bccd9a3b7d3dbbc28794a9b64f8 *inst/tutorials/tutorial1/data/adols.paj
 dbd302bd9c1e2c921c6255d740ca5c0b *inst/tutorials/tutorial1/data/flonode.csv
-409d56507fd76eb7ddda557b320b169e *inst/tutorials/tutorial2/visualisation.Rmd
-a5c258684dab76fa33d2c8ba0b9b572d *inst/tutorials/tutorial2/visualisation.html
-8eed58ee7fefaadc631360b6a0f20f22 *inst/tutorials/tutorial2/visualisation_files/figure-html/maxbet-1.png
 16f47e55365400a84f7f25dd90859695 *inst/tutorials/tutorial3/centrality.Rmd
 334a693da2c5087808276ef829e02084 *inst/tutorials/tutorial3/centrality.html
 7f4d04ac11d0bc3bed38bc8aa9ce7ca6 *inst/tutorials/tutorial4/community.Rmd
@@ -118,6 +118,7 @@ a975b7d16ae7b059cd74253c22363145 *man/glossary.Rd
 3cfb1db1ddf1e5635bb5e8bed54a6697 *man/irps_911.Rd
 79159309ea73ff23e9ca0ab2721f4512 *man/irps_blogs.Rd
 0e18c49734fd9d32030286e0e5abb780 *man/irps_books.Rd
+3517edffd4316e262c2ae3b0d112a723 *man/irps_nuclear_discourse.Rd
 b0dad832d439109f5f8d6aee097d2dbd *man/irps_revere.Rd
 4b9eea3f80efefd6605fedc90fe95ad1 *man/irps_usgeo.Rd
 30f497c7eea69be0fd0ec8ffb2c73a03 *man/irps_wwi.Rd
@@ -126,6 +127,7 @@ c1bd51c82a14b43ff35306bff5d0a490 *man/ison_adolescents.Rd
 e056231304266dc40705b97abde3e712 *man/ison_brandes.Rd
 2ecb61c3471f71a05237cc8060817cb5 *man/ison_dolphins.Rd
 c2cc3879010eaece61087379f86a0019 *man/ison_hightech.Rd
+309b6098a1e8403422f9bf17c2352219 *man/ison_judo_moves.Rd
 9fea76705bff44570788ae519811be64 *man/ison_karateka.Rd
 87c4b4219a668827f711c7708b29d7c8 *man/ison_koenigsberg.Rd
 66b627f1e3e2c8b0b926889b8d9cf4ef *man/ison_laterals.Rd
@@ -136,7 +138,7 @@ d9957aabf0c0899a61eeed8858532076 *man/ison_networkers.Rd
 13d687085606251d3c23cb01b73a3ac2 *man/ison_physicians.Rd
 91b16d34851675fb6de4270d856b8225 *man/ison_southern_women.Rd
 63755d9bcab15dddb323d695a8558a4a *man/make_cran.Rd
-15914f6402ca03cedd799cac22a243ba *man/make_create.Rd
+3b0d7bb8bdb36c5f624e5b77a4d63047 *man/make_create.Rd
 c42894fd1bd7ea8bc9d048b4bc792fa4 *man/make_ego.Rd
 7b14a19c2994ad5fa49fab0d63155a65 *man/make_explicit.Rd
 8b7a054b5a826158b36098ac80c7ec3e *man/make_learning.Rd
@@ -225,7 +227,7 @@ bdd9ad82944ff4c6cc1171e853071012 *tests/testthat/sheets/ucinettest1.##h
 d0b3afb5b4b8a50900094284e36babcd *tests/testthat/test-manip_add.R
 2b3fdc092606d5ecf079de7081dd56ab *tests/testthat/test-manip_as.R
 7390b7891d7263e483ad35dc322ab5f1 *tests/testthat/test-manip_correlation.R
-96a55333d23569e91a13c724c651919c *tests/testthat/test-manip_format.R
+16414b3da7bae539c1f673b3146e3deb *tests/testthat/test-manip_format.R
 d790879e5a7a5f2f0859f0ba0e42cef4 *tests/testthat/test-manip_grab.R
 b644d01d099d612cc806972a4ad28c84 *tests/testthat/test-manip_miss.R
 08834f7f820f7dd940a89183557cdca1 *tests/testthat/test-manip_reformed.R
