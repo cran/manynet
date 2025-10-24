@@ -105,7 +105,7 @@ NULL
 node_degree <- function (.data, normalized = TRUE, alpha = 1,
                          direction = c("all","out","in")){
   
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   graph <- manynet::as_igraph(.data)
   weights <- `if`(manynet::is_weighted(.data), 
                   manynet::tie_weights(.data), NA)
@@ -147,21 +147,21 @@ node_degree <- function (.data, normalized = TRUE, alpha = 1,
 #' @rdname measure_central_degree
 #' @export
 node_deg <- function (.data, alpha = 0, direction = c("all","out","in")){
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   node_degree(.data, normalized = FALSE, alpha = alpha, direction = direction)
 }
 
 #' @rdname measure_central_degree
 #' @export
 node_outdegree <- function (.data, normalized = TRUE, alpha = 0){
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   node_degree(.data, normalized = normalized, alpha = alpha, direction = "out")
 }
 
 #' @rdname measure_central_degree
 #' @export
 node_indegree <- function (.data, normalized = TRUE, alpha = 0){
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   node_degree(.data, normalized = normalized, alpha = alpha, direction = "in")
 }
 
@@ -170,7 +170,7 @@ node_indegree <- function (.data, normalized = TRUE, alpha = 0){
 #' @param tie2 Character string indicating the second uniplex network.
 #' @export
 node_multidegree <- function (.data, tie1, tie2){
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   stopifnot(manynet::is_multiplex(.data))
   out <- node_degree(manynet::to_uniplex(.data, tie1)) - 
     node_degree(manynet::to_uniplex(.data, tie2))
@@ -186,7 +186,7 @@ node_multidegree <- function (.data, tie1, tie2){
 #' \doi{10.1016/j.socnet.2014.03.005}
 #' @export
 node_posneg <- function(.data){
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   stopifnot(manynet::is_signed(.data))
   pos <- manynet::as_matrix(manynet::to_unsigned(.data, keep = "positive"))
   neg <- manynet::as_matrix(manynet::to_unsigned(.data, keep = "negative"))
@@ -212,7 +212,7 @@ node_posneg <- function(.data){
 #' \doi{10.1371/journal.pone.0012200}
 #' @export
 node_leverage <- function(.data){
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   out <- (node_deg(.data) - node_neighbours_degree(.data))/
     (node_deg(.data) + node_neighbours_degree(.data))
   make_node_measure(out, .data)
@@ -223,7 +223,7 @@ node_leverage <- function(.data){
 #' tie_degree(ison_adolescents)
 #' @export
 tie_degree <- function(.data, normalized = TRUE){
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   edge_adj <- manynet::to_ties(.data)
   out <- node_degree(edge_adj, normalized = normalized)
   class(out) <- "numeric"
@@ -238,7 +238,7 @@ tie_degree <- function(.data, normalized = TRUE){
 net_degree <- function(.data, normalized = TRUE,
                            direction = c("all", "out", "in")){
   
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   direction <- match.arg(direction)
   
   if (manynet::is_twomode(.data)) {
@@ -272,14 +272,14 @@ net_degree <- function(.data, normalized = TRUE,
 #' @rdname measure_central_degree
 #' @export
 net_outdegree <- function(.data, normalized = TRUE){
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   net_degree(.data, normalized = normalized, direction = "out")
 }
 
 #' @rdname measure_central_degree
 #' @export
 net_indegree <- function(.data, normalized = TRUE){
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   net_degree(.data, normalized = normalized, direction = "in")
 }
 
@@ -330,7 +330,7 @@ NULL
 node_betweenness <- function(.data, normalized = TRUE, 
                              cutoff = NULL){
   
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   weights <- `if`(manynet::is_weighted(.data), 
                   manynet::tie_weights(.data), NA)
   graph <- manynet::as_igraph(.data)
@@ -376,7 +376,7 @@ node_betweenness <- function(.data, normalized = TRUE,
 #' @export 
 node_induced <- function(.data, normalized = TRUE, 
                          cutoff = NULL){
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   endog <- sum(node_betweenness(.data, normalized = normalized, cutoff = cutoff),
                na.rm = TRUE)
   exog <- vapply(seq.int(manynet::net_nodes(.data)),
@@ -407,7 +407,7 @@ node_induced <- function(.data, normalized = TRUE,
 #' Berlin: Springer.
 #' @export 
 node_flow <- function(.data, normalized = TRUE){
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   thisRequires("sna")
   out <- sna::flowbet(as_network(.data),
                       gmode = ifelse(is_directed(.data), "digraph", "graph"),
@@ -447,7 +447,7 @@ node_stress <- function(.data, normalized = TRUE){
 #' ison_adolescents %>% mutate_ties(weight = tb)
 #' @export
 tie_betweenness <- function(.data, normalized = TRUE){
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   .data <- manynet::as_igraph(.data)
   eddies <- manynet::as_edgelist(.data)
   eddies <- paste(eddies[["from"]], eddies[["to"]], sep = "-")
@@ -464,7 +464,7 @@ tie_betweenness <- function(.data, normalized = TRUE){
 net_betweenness <- function(.data, normalized = TRUE,
                                 direction = c("all", "out", "in")) {
   
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   direction <- match.arg(direction)
   graph <- manynet::as_igraph(.data)
   
@@ -555,8 +555,8 @@ NULL
 #' @rdname measure_central_close
 #' @param cutoff Maximum path length to use during calculations.
 #' @section Closeness centrality: 
-#'   Closeness centrality or status centrality is defined as the reciprocal of 
-#'   the farness or distance, \eqn{d}, 
+#'   Closeness centrality, status centrality, or barycenter centrality is 
+#'   defined as the reciprocal of the farness or distance, \eqn{d}, 
 #'   from a node to all other nodes in the network:
 #'   \deqn{C_C(i) = \frac{1}{\sum_j d(i,j)}}
 #'   When (more commonly) normalised, the numerator is instead \eqn{N-1}.
@@ -577,7 +577,7 @@ NULL
 node_closeness <- function(.data, normalized = TRUE, 
                            direction = "out", cutoff = NULL){
   
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   weights <- `if`(manynet::is_weighted(.data), 
                   manynet::tie_weights(.data), NA)
   graph <- manynet::as_igraph(.data)
@@ -620,7 +620,7 @@ node_closeness <- function(.data, normalized = TRUE,
 #'   _Journal of Social Structure_ 6(3).
 #' @export
 node_harmonic <- function(.data, normalized = TRUE, cutoff = -1){
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   out <- igraph::harmonic_centrality(as_igraph(.data), # weighted if present
                                      normalized = normalized, cutoff = cutoff)
   out <- make_node_measure(out, .data)
@@ -651,7 +651,7 @@ node_harmonic <- function(.data, normalized = TRUE, cutoff = -1){
 #' node_reach(ison_adolescents)
 #' @export
 node_reach <- function(.data, normalized = TRUE, cutoff = 2){
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   if(is_weighted(.data)){
     tore <- as_matrix(.data)/mean(as_matrix(.data))
     out <- 1/tore
@@ -696,7 +696,7 @@ node_reach <- function(.data, normalized = TRUE, cutoff = 2){
 #' \doi{10.1007/978-3-540-31856-9_44}
 #' @export
 node_information <- function(.data, normalized = TRUE){
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   thisRequires("sna")
   out <- sna::infocent(manynet::as_network(.data),
                        gmode = ifelse(manynet::is_directed(.data), "digraph", "graph"),
@@ -720,7 +720,7 @@ node_information <- function(.data, normalized = TRUE){
 #'   \doi{10.1016/0378-8733(94)00248-9}
 #' @export
 node_eccentricity <- function(.data, normalized = TRUE){
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   if(!is_connected(.data)) 
     snet_unavailable("Eccentricity centrality is only available for connected networks.")
   disties <- igraph::distances(as_igraph(.data))
@@ -746,7 +746,7 @@ node_eccentricity <- function(.data, normalized = TRUE){
 #' @param from,to Index or name of a node to calculate distances from or to.
 #' @export
 node_distance <- function(.data, from, to, normalized = TRUE){
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   if(missing(from) && missing(to)) snet_abort("Either 'from' or 'to' must be specified.")
   if(!missing(from)) out <- igraph::distances(as_igraph(.data), v = from) else 
     if(!missing(to)) out <- igraph::distances(as_igraph(.data), to = to)
@@ -760,7 +760,12 @@ node_distance <- function(.data, from, to, normalized = TRUE){
 #'   in a network, also known as the Wiener Index, when that node is removed.
 #'   Note that the closeness vitality may be negative infinity if
 #'   removing that node would disconnect the network.
+#'   Formally:
+#'   \deqn{C_V(i) = \sum_{j,k} d(j,k) - \sum_{j,k} d(j,k,G\ i)}
+#'   where \eqn{d(j,k,G\ i)} is the distance between nodes \eqn{j} and \eqn{k}
+#'   in the network with node \eqn{i} removed.
 #' @references
+#' ## On closeness vitality centrality
 #'   Koschuetzki, Dirk, Katharina Lehmann, Leon Peeters, Stefan Richter,
 #'   Dagmar Tenfelde-Podehl, and Oliver Zlotowski. 2005.
 #'   "Centrality Indices", in
@@ -769,7 +774,7 @@ node_distance <- function(.data, from, to, normalized = TRUE){
 #'   Springer: Berlin, pp. 16-61.
 #' @export
 node_vitality <- function(.data, normalized = TRUE){
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   .data <- as_igraph(.data)
   out <- vapply(snet_progress_nodes(.data), function(x){
     sum(igraph::distances(.data)) - sum(igraph::distances(delete_nodes(.data, x)))
@@ -779,12 +784,80 @@ node_vitality <- function(.data, normalized = TRUE){
 }
 
 #' @rdname measure_central_close 
+#' @section Random walk closeness centrality: 
+#'   Random walk closeness centrality is based on the average length of
+#'   random walks starting at all other nodes to reach a given node.
+#'   It is defined as the inverse of the average hitting time to a node.
+#'   This means that higher values are given to nodes that can be reached
+#'   more quickly on average by random walks starting at other nodes.
+#'   Formally:
+#'   \deqn{C_{RW}(i) = \frac{1}{\frac{1}{N-1} \sum_{j \neq i} H_{ji}}}
+#'   where \eqn{H_{ji}} is the hitting time from node \eqn{j} to node \eqn{i}.
+#' @references
+#' ## On random walk closeness centrality
+#'   Noh, J.D. and R. Rieger. 2004.
+#'   "Random Walks on Complex Networks".
+#'   _Physical Review Letters_, 92(11): 118701.
+#'   \doi{10.1103/PhysRevLett.92.118701}
+#' @export
+node_randomwalk <- function(.data, normalized = TRUE){
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
+  # adjacency and degree matrices
+  A <- as_matrix(.data)
+  degs <- node_deg(.data)
+  D <- diag(degs)
+  
+  # Laplacian
+  L <- D - A
+  
+  # pseudoinverse of Laplacian
+  Lplus <- .ginv(L)
+  
+  volG <- sum(degs)  # total degree (2 * edges)
+  n <- net_nodes(.data)
+  
+  out <- numeric(n)
+  
+  for (i in 1:n) {
+    # hitting time from j to i
+    hitting_times <- sapply(1:n, function(j) {
+      if (i == j) return(0)
+      volG * (Lplus[j, j] + Lplus[i, i] - 2 * Lplus[i, j])
+    })
+    # average hitting time to node i
+    avg_ht <- mean(hitting_times[-i])
+    out[i] <- 1 / avg_ht
+  }
+  
+  make_node_measure(out, .data)
+}
+
+# This is a helper function to compute the Moore-Penrose generalized inverse
+# of a matrix using its singular value decomposition (SVD).
+.ginv <- function (X, tol = sqrt(.Machine$double.eps)){
+  if (length(dim(X)) > 2L || !(is.numeric(X) || is.complex(X))) 
+    stop("'X' must be a numeric or complex matrix")
+  if (!is.matrix(X)) 
+    X <- as.matrix(X)
+  Xsvd <- svd(X)
+  if (is.complex(X)) 
+    Xsvd$u <- Conj(Xsvd$u)
+  Positive <- Xsvd$d > max(tol * Xsvd$d[1L], 0)
+  if (all(Positive)) 
+    Xsvd$v %*% (1/Xsvd$d * t(Xsvd$u))
+  else if (!any(Positive)) 
+    array(0, dim(X)[2L:1L])
+  else Xsvd$v[, Positive, drop = FALSE] %*% ((1/Xsvd$d[Positive]) * 
+                                               t(Xsvd$u[, Positive, drop = FALSE]))
+}
+
+#' @rdname measure_central_close 
 #' @examples
 #' (ec <- tie_closeness(ison_adolescents))
 #' ison_adolescents %>% mutate_ties(weight = ec)
 #' @export
 tie_closeness <- function(.data, normalized = TRUE){
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   edge_adj <- manynet::to_ties(.data)
   out <- node_closeness(edge_adj, normalized = normalized)
   class(out) <- "numeric"
@@ -799,7 +872,7 @@ tie_closeness <- function(.data, normalized = TRUE){
 net_closeness <- function(.data, normalized = TRUE,
                               direction = c("all", "out", "in")){
   
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   direction <- match.arg(direction)
   graph <- manynet::as_igraph(.data)
   
@@ -860,7 +933,7 @@ net_closeness <- function(.data, normalized = TRUE,
 #' @rdname measure_central_close 
 #' @export
 net_reach <- function(.data, normalized = TRUE, cutoff = 2){
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   reaches <- node_reach(.data, normalized = FALSE, cutoff = cutoff)
   out <- sum(max(reaches) - reaches)
   if(normalized) out <- out / sum(manynet::net_nodes(.data) - reaches)
@@ -870,7 +943,7 @@ net_reach <- function(.data, normalized = TRUE, cutoff = 2){
 #' @rdname measure_central_close
 #' @export
 net_harmonic <- function(.data, normalized = TRUE, cutoff = 2){
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   harm <- node_harmonic(.data, normalized = FALSE, cutoff = cutoff)
   out <- sum(max(harm) - harm)
   if(normalized) out <- out / sum(manynet::net_nodes(.data) - harm)
@@ -940,7 +1013,7 @@ NULL
 #' @export 
 node_eigenvector <- function(.data, normalized = TRUE, scale = TRUE){
   
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   weights <- `if`(manynet::is_weighted(.data), 
                   manynet::tie_weights(.data), NA)
   graph <- manynet::as_igraph(.data)
@@ -1000,7 +1073,7 @@ node_eigenvector <- function(.data, normalized = TRUE, scale = TRUE){
 #' @export 
 node_power <- function(.data, normalized = TRUE, scale = FALSE, exponent = 1){
   
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   weights <- `if`(manynet::is_weighted(.data), 
                   manynet::tie_weights(.data), NA)
   graph <- manynet::as_igraph(.data)
@@ -1033,9 +1106,9 @@ node_power <- function(.data, normalized = TRUE, scale = FALSE, exponent = 1){
 #'   As \eqn{\alpha} gets larger, only the connectivity matters and we reduce to eigenvector centrality.
 #'   By default \eqn{\alpha = 0.85}.
 #' @section Alpha centrality:
-#'   Alpha or Katz (or Katz-Bonacich) centrality operates better than eigenvector centrality
-#'   for directed networks.
-#'   Eigenvector centrality will return 0s for all nodes not in the main strongly-connected component.
+#'   Alpha or Katz (or Katz-Bonacich) centrality operates better than 
+#'   eigenvector centrality for directed networks because eigenvector centrality 
+#'   will return 0s for all nodes not in the main strongly-connected component.
 #'   Each node's alpha centrality can be defined as:
 #'   \deqn{x_i = \frac{1}{\lambda} \sum_{j \in N} a_{i,j} x_j + e_i}
 #'   where \eqn{a_{i,j} = 1} if \eqn{i} is linked to \eqn{j} and 0 otherwise,
@@ -1063,7 +1136,7 @@ node_power <- function(.data, normalized = TRUE, scale = FALSE, exponent = 1){
 #'   _Social Networks_. 23(3):191-201.
 #' @export 
 node_alpha <- function(.data, alpha = 0.85){
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   make_node_measure(igraph::alpha_centrality(manynet::as_igraph(.data), 
                                              alpha = alpha),
                     .data)
@@ -1077,7 +1150,7 @@ node_alpha <- function(.data, alpha = 0.85){
 #'   _Proceedings of the 7th World-Wide Web Conference_. Brisbane, Australia.
 #' @export 
 node_pagerank <- function(.data){
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   make_node_measure(igraph::page_rank(manynet::as_igraph(.data)),
                     .data)
 }
@@ -1091,7 +1164,7 @@ node_pagerank <- function(.data){
 #'   \doi{10.1145/324133.324140}
 #' @export 
 node_authority <- function(.data){
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   make_node_measure(igraph::authority_score(manynet::as_igraph(.data))$vector,
                     .data)
 }
@@ -1099,8 +1172,39 @@ node_authority <- function(.data){
 #' @rdname measure_central_eigen 
 #' @export 
 node_hub <- function(.data){
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   make_node_measure(igraph::hub_score(manynet::as_igraph(.data))$vector,
+                    .data)
+}
+
+#' @rdname measure_central_eigen 
+#' @section Subgraph centrality:
+#'   Subgraph centrality measures the participation of a node in all subgraphs
+#'   in the network, giving higher weight to smaller subgraphs.
+#'   It is defined as:
+#'   \deqn{C_S(i) = \sum_{k=0}^{\infty} \frac{(A^k)_{ii}}{k!}}
+#'   where \eqn{(A^k)_{ii}} is the \eqn{i}th diagonal element of the \eqn{k}th power
+#'   of the adjacency matrix \eqn{A}, representing the number of closed walks
+#'   of length \eqn{k} starting and ending at node \eqn{i}.
+#'   Weighting by \eqn{\frac{1}{k!}} ensures that shorter walks contribute more
+#'   to the centrality score than longer walks.
+#'   
+#'   Subgraph centrality is a good choice of measure when the focus is on
+#'   local connectivity and clustering around a node,
+#'   as it captures the extent to which a node is embedded in tightly-knit
+#'   groups within the network.
+#'   Note though that because of the way spectral decomposition is used to
+#'   calculate this measure, this is not a good measure for very large graphs.
+#' @references
+#' ## On subgraph centrality
+#'   Estrada, Ernesto and Rodríguez-Velázquez, Juan A. 2005.
+#'   "Subgraph centrality in complex networks".
+#'   _Physical Review E_ 71(5): 056103.
+#'   \doi{10.1103/PhysRevE.71.056103}
+#' @export 
+node_subgraph <- function(.data){
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
+  make_node_measure(igraph::subgraph_centrality(manynet::as_igraph(.data)),
                     .data)
 }
 
@@ -1109,7 +1213,7 @@ node_hub <- function(.data){
 #' tie_eigenvector(ison_adolescents)
 #' @export
 tie_eigenvector <- function(.data, normalized = TRUE){
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   edge_adj <- manynet::to_ties(.data)
   out <- node_eigenvector(edge_adj, normalized = normalized)
   class(out) <- "numeric"
@@ -1122,7 +1226,7 @@ tie_eigenvector <- function(.data, normalized = TRUE){
 #' net_eigenvector(ison_southern_women)
 #' @export
 net_eigenvector <- function(.data, normalized = TRUE){
-  if(missing(.data)) {expect_nodes(); .data <- .G()}
+  if(missing(.data)) {expect_nodes(); .data <- .G()} # nocov
   if (manynet::is_twomode(.data)) {
     out <- c(igraph::centr_eigen(manynet::as_igraph(manynet::to_mode1(.data)), 
                                  normalized = normalized)$centralization,
