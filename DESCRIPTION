@@ -1,7 +1,7 @@
 Package: manynet
 Title: Many Ways to Make, Modify, Mark, and Measure Myriad Networks
-Version: 1.6.5
-Date: 2025-10-22
+Version: 1.7.0
+Date: 2025-11-19
 Description: Many tools for making, modifying, marking, measuring, 
    and motifs and memberships of many different types of networks.
    All functions operate with matrices, edge lists, and 'igraph', 'network', and 'tidygraph' objects,
@@ -42,11 +42,11 @@ Config/testthat/parallel: true
 Config/testthat/edition: 3
 Config/testthat/start-first: mark_is
 NeedsCompilation: no
-Packaged: 2025-10-24 15:21:25 UTC; hollway
+Packaged: 2025-11-19 10:08:56 UTC; hollway
 Author: James Hollway [cre, aut, ctb] (IHEID, ORCID:
     <https://orcid.org/0000-0002-8361-9647>),
   Henrique Sposito [ctb] (ORCID: <https://orcid.org/0000-0003-3420-6085>),
   Christian Steglich [ctb]
 Maintainer: James Hollway <james.hollway@graduateinstitute.ch>
 Repository: CRAN
-Date/Publication: 2025-10-24 15:50:02 UTC
+Date/Publication: 2025-11-19 16:10:02 UTC
