@@ -1,7 +1,7 @@
 Package: manynet
 Title: Many Ways to Make, Modify, Mark, and Measure Myriad Networks
-Version: 1.7.1
-Date: 2026-02-17
+Version: 2.0.1
+Date: 2026-04-04
 Description: Many tools for making, modifying, marking, measuring, 
    and motifs and memberships of many different types of networks.
    All functions operate with matrices, edge lists, and 'igraph', 'network', and 'tidygraph' objects,
@@ -16,11 +16,11 @@ Language: en-GB
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.3
-Depends: R (>= 3.6.0)
+Depends: R (>= 4.1.0)
 Imports: cli, dplyr (>= 1.1.0), igraph (>= 2.1.0), network, pillar,
         tidygraph
-Suggests: autograph, knitr, learnr, methods, netdiffuseR, readxl,
-        rmarkdown, RSiena, sna, testthat (>= 3.0.0), tibble, xml2
+Suggests: knitr, methods, readxl, rmarkdown, RSiena, sna, testthat (>=
+        3.0.0), tibble, xml2
 Authors@R: 
     c(person(given = "James",
              family = "Hollway",
@@ -42,11 +42,11 @@ Config/testthat/parallel: true
 Config/testthat/edition: 3
 Config/testthat/start-first: mark_is
 NeedsCompilation: no
-Packaged: 2026-02-18 10:09:45 UTC; hollway
+Packaged: 2026-04-04 07:30:30 UTC; hollway
 Author: James Hollway [cre, aut, ctb] (IHEID, ORCID:
     <https://orcid.org/0000-0002-8361-9647>),
   Henrique Sposito [ctb] (ORCID: <https://orcid.org/0000-0003-3420-6085>),
   Christian Steglich [ctb]
 Maintainer: James Hollway <james.hollway@graduateinstitute.ch>
 Repository: CRAN
-Date/Publication: 2026-02-19 08:30:14 UTC
+Date/Publication: 2026-04-04 08:30:02 UTC
