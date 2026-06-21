@@ -31,30 +31,38 @@ vocabulary, syntax, and expected formats for data inputs and analytic
 outputs. Many of these packages only work on *some* types of networks
 (usually one-mode, simple, directed or undirected networks) for *some*
 types of analysis; if you want to analyse a different type of network or
-try a different analysis, a different package is needed. And they can
-rely on a very different visual language (and sometimes plotting
-engine), which can mess up your pretty presentation or paper. This can
-make learning and using network analysis tools in R challenging.
+try a different analysis, a different package is needed. This can make
+learning and using network analysis tools in R challenging.
 
-By contrast, `{manynet}` offers *many* analytic tools that work on
-*many* (if not most) types and kinds of networks. It helps researchers
-make, modify, mark, measure, and identify nodes’ motifs and memberships
-in networks. For graph drawing see
-[`{autograph}`](https://stocnet.github.io/autograph/), and for further
-testing and modelling capabilities see
-[`{migraph}`](https://stocnet.github.io/migraph/) and the other
-[stocnet](https://github.com/stocnet) packages.
+By contrast, `{manynet}` offers *many* tools that help researchers make,
+manipulate, and modify *many* (if not most) types and kinds of networks,
+including matrices, edgelists, and objects from other packages such as
+`{igraph}`, `{network}`, `{tidygraph}`, `{diffnet}`, and `{siena}`, as
+well as one-mode and two-mode, directed and undirected, weighted,
+unweighted, and signed, longitudinal and dynamic networks. If you have
+social network data, `{manynet}` probably has the tools to help you work
+with it.
+
+NB: If you are looking for the visualisation functions that used to be
+in `{manynet}`, these have been migrated to their own package
+`{autograph}`. If you are looking for the network analytic functions
+that used to be in `{manynet}`, these have been migrated to their own
+package `{netrics}`. If you install and load `{migraph}`, all these
+packages will be installed and loaded and you can use all functionality,
+past and present.
 
 - [Making](#making)
   - [Importing network data](#importing-network-data)
   - [Identifying network data](#identifying-network-data)
   - [Inventing network data](#inventing-network-data)
+- [Manipulating](#manipulating)
   - [Translating network data](#translating-network-data)
+  - [Wrangling with dplyr-style
+    verbs](#wrangling-with-dplyr-style-verbs)
 - [Modifying](#modifying)
   - [Reformatting](#reformatting)
   - [Transforming](#transforming)
   - [Splitting and Joining](#splitting-and-joining)
-  - [Extracting](#extracting)
 - [Installation](#installation)
   - [Stable](#stable)
   - [Development](#development)
@@ -77,8 +85,7 @@ in other repositories. Besides importing and exporting to Excel
 edgelists, nodelists, and (bi)adjacency matrices, there are specific
 routines included for
 [UCINET](http://www.analytictech.com/archive/ucinet.htm),
-[Pajek](http://mrvar.fdv.uni-lj.si/pajek/), and
-[GraphML](http://graphml.graphdrawing.org) files, e.g.:
+[Pajek](http://mrvar.fdv.uni-lj.si/pajek/), and GraphML files, e.g.:
 
 <img src="https://www.jameshollway.com/post/manynet/README-import-graph-1.png" alt="Graph of manynet input/output formats"/>
 
@@ -106,11 +113,18 @@ for analysis. Here are just a few examples, all available in
 
 <img src="https://www.jameshollway.com/post/manynet/README-ison_egs-1.png" alt="Graphs illustrating several of the classic networks included in the package"/>
 
-Here are some others: `ison_adolescents`, `ison_algebra`,
-`ison_brandes`, `ison_dolphins`, `ison_emotions`, `ison_hightech`,
-`ison_judo_moves`, `ison_karateka`, `ison_koenigsberg`, `ison_laterals`,
-`ison_lawfirm`, `ison_monks`, `ison_networkers`, `ison_physicians`,
-`ison_southern_women`
+The package includes three families of network data:
+
+- Classic/instructional networks: `ison_adolescents`, `ison_algebra`,
+  `ison_brandes`, `ison_dolphins`, `ison_emotions`, `ison_hightech`,
+  `ison_judo_moves`, `ison_karateka`, `ison_koenigsberg`,
+  `ison_laterals`, `ison_lawfirm`, `ison_monks`, `ison_networkers`,
+  `ison_physicians`, `ison_southern_women`
+- Fictional networks: `fict_actually`, `fict_friends`, `fict_greys`,
+  `fict_lotr`, `fict_marvel`, `fict_potter`, `fict_starwars`,
+  `fict_thrones`
+- International/political networks: `irps_911`, `irps_blogs`,
+  `irps_books`, `irps_nuclear`, `irps_revere`, `irps_usgeo`, `irps_wwi`
 
 #### Inventing network data
 
@@ -141,7 +155,7 @@ See also `generate_citations()`, `generate_configuration()`,
 Note that all these functions can create directed or undirected,
 one-mode or two-mode networks. Creating two-mode networks is as easy as
 passing the first argument (`n`) a vector of two integers instead of
-one. For example, while `n = 15` will create a one-mode network of 10
+one. For example, while `n = 15` will create a one-mode network of 15
 nodes, whereas `n = c(10,5)` will create a two-mode network of 10 nodes
 in the first mode, and 5 nodes in the second mode. Some of these
 functions wrap existing algorithms in other packages, while others are
@@ -151,21 +165,21 @@ unique offerings or add additional formats, e.g. two-mode networks.
 
 #### Inventing data on networks
 
-Lastly, `{manynet}` also includes functions for simulating diffusion or
-learning processes over a given network:
+`{manynet}` also includes functions for simulating diffusion or learning
+processes over a given network:
 
 - `play_diffusion()`, `play_learning()`, `play_segregation()`
 
 The diffusion models include not only SI and threshold models, but also
-SIS, SIR, SIRS, SEIR, and SEIRS.
+SIS, SIR, SIRS, SEIR, and SEIRS. These simulations return results that
+can be analysed with the network-level and node-level diffusion measures
+in `{netrics}`.
 
-## Modifying
+## Manipulating
 
-Before or during analysis, you may need to modify the network you are
-analysing in various ways. Different packages have different syntaxes
-and vocabulary for such actions; `{manynet}`’s `to_*()` functions can be
-used on any class object to reformat, transform, or split networks into
-networks with other properties.
+`{manynet}` offers comprehensive tools for manipulating networks,
+including coercing between formats and using familiar dplyr-style verbs
+to work with nodes, ties, and their attributes.
 
 #### Translating network data
 
@@ -181,14 +195,52 @@ available options:
 These functions are designed to be as intuitive and lossless as
 possible, outperforming many other class-coercion packages.
 
-We use these functions internally in every `{manynet}` and `{migraph}`
-function to (1) allow them to be run on any compatible network format
-and (2) use the most efficient algorithm available. This makes
-`{manynet}` and `{migraph}` compatible with your existing workflow,
-whether you use base R matrices or edgelists as data frames,
+We use these functions internally in every `{manynet}`, `{autograph}`,
+`{netrics}`, and `{migraph}` function to (1) allow them to be run on any
+compatible network format and (2) use the most efficient algorithm
+available. This makes all these packages compatible with your existing
+workflow, whether you use base R matrices or edgelists as data frames,
 [`{igraph}`](https://igraph.org/r/), [`{network}`](https://statnet.org),
 or [`{tidygraph}`](https://tidygraph.data-imaginist.com/index.html), and
 extensible by developments in those other packages too.
+
+#### Wrangling with dplyr-style verbs
+
+`{manynet}` offers a set of dplyr-inspired verbs for working directly
+with network nodes, ties, and their attributes. These verbs follow the
+familiar tidyverse grammar, making network manipulation intuitive for R
+users:
+
+``` r
+ison_southern_women %>%
+  mutate_ties(weight = 1) %>%
+  filter_nodes(node_is_mode(ison_southern_women)) %>%
+  select_nodes(name)
+```
+
+Available verbs for manipulating **nodes**: `mutate_nodes()`,
+`filter_nodes()`, `select_nodes()`, `rename_nodes()`, `arrange_nodes()`,
+`bind_nodes()`, `add_nodes()`, `delete_nodes()`, `join_nodes()`
+
+Available verbs for manipulating **ties**: `mutate_ties()`,
+`filter_ties()`, `select_ties()`, `rename_ties()`, `arrange_ties()`,
+`bind_ties()`, `add_ties()`, `delete_ties()`, `join_ties()`
+
+Available verbs for manipulating **changes**: `add_changes()`,
+`apply_changes()`, `arrange_changes()`, `bind_changes()`,
+`collect_changes()`, `delete_changes()`, `describe_changes()`,
+`filter_changes()`, `gather_changes()`, `mutate_changes()`,
+`rename_changes()`, `select_changes()`
+
+Available verbs for manipulating **globals**: `mutate_globals()`,
+`rename_globals()`, `select_globals()`
+
+## Modifying
+
+Before or during analysis, you may need to modify the structure of the
+network you are analysing. `{manynet}`’s `to_*()` functions can be used
+on any class object to reformat, transform, or split networks into
+networks with other properties.
 
 ### Reformatting
 
@@ -197,12 +249,23 @@ directed to undirected via `to_undirected()`.
 
 <img src="https://www.jameshollway.com/post/manynet/README-directed_egs-1.png" alt="Graphs illustrating modification of a network's directedness"/>
 
+See also `to_directed()`, `to_named()`, `to_permuted()`,
+`to_reciprocated()`, `to_redirected()`, `to_signed()`,
+`to_undirected()`, `to_unnamed()`, `to_unsigned()`, `to_unweighted()`,
+`to_weighted()`.
+
 ### Transforming
 
 Transforming means changing the dimensions of the network, e.g. from a
-two-mode network to a one-mode projection via `to_mode1()`.
+two-mode network to a one-mode projection via `to_mode1()` or
+`to_mode2()`.
 
 <img src="https://www.jameshollway.com/post/manynet/README-projection_egs-1.png" alt="Graphs illustrating decomposition of a two-mode network into its projections"/>
+
+Compared with other packages, `{manynet}`’s `to_mode1()` and
+`to_mode2()` functions are more flexible and efficient, work with all
+input classes, offer additional weighting options (such as Jaccard or
+cosine normalisation), and retain node and edge attributes.
 
 ### Splitting and Joining
 
@@ -216,17 +279,10 @@ distinguishable as those `to_*()` functions that are named in the
 plural. Split data can be rejoined using the `from_*()` family of
 functions.
 
-See also `to_acyclic()`, `to_anti()`, `to_blocks()`, `to_components()`,
-`to_correlation()`, `to_cosine()`, `to_directed()`, `to_dominating()`,
-`to_ego()`, `to_egos()`, `to_eulerian()`, `to_giant()`, `to_matching()`,
-`to_mentoring()`, `to_mode1()`, `to_mode2()`, `to_multilevel()`,
-`to_named()`, `to_no_isolates()`, `to_no_missing()`, `to_onemode()`,
-`to_permuted()`, `to_reciprocated()`, `to_redirected()`, `to_signed()`,
-`to_simplex()`, `to_slices()`, `to_subgraph()`, `to_subgraphs()`,
-`to_ties()`, `to_time()`, `to_tree()`, `to_twomode()`,
-`to_undirected()`, `to_uniplex()`, `to_unnamed()`, `to_unsigned()`,
-`to_unweighted()`, `to_waves()`, `to_weighted()` and `from_egos()`,
-`from_slices()`, `from_subgraphs()`, `from_ties()`, `from_waves()`.
+See also `to_blocks()`, `to_components()`, `to_egos()`,
+`to_no_isolates()`, `to_slices()`, `to_subgraphs()`, `to_ties()`,
+`to_waves()` and `from_egos()`, `from_slices()`, `from_subgraphs()`,
+`from_ties()`, `from_waves()`.
 
 ## Installation
 
@@ -287,10 +343,15 @@ and uses the quickest `{igraph}` or `{network}` routines where
 available.
 
 `{manynet}` has inherited most of its core functionality from its
-maternal package, `{migraph}`. `{migraph}` continues to offer more
-analytic and modelling functions that builds upon the architecture
-provided by `{manynet}`. For more, please check out `{migraph}`
-directly.
+maternal package, `{migraph}`, but has also devolved its visualisation
+capabilities to its sibling package,
+[`{autograph}`](https://stocnet.github.io/autograph/), and its network
+analytic capabilities to its sibling package,
+[`{netrics}`](https://stocnet.github.io/netrics/).
+[`{migraph}`](https://stocnet.github.io/migraph/) continues to offer
+modelling functions that builds upon the architecture provided by
+`{manynet}`. For more, please check out `{migraph}` and the other
+[stocnet](https://github.com/stocnet) packages directly.
 
 ## Funding details
 

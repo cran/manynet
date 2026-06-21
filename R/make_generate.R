@@ -81,14 +81,14 @@ generate_random <- function(n, p = 0.5, directed = FALSE, with_attr = TRUE) {
     if(with_attr) g <- bind_node_attributes(g, n)
   } else if (length(n) == 1) {
     if(p > 1){
-      if(!as.integer(p)==p) snet_abort("`p` must be an integer if above 1.")
+      if(as.integer(p)!=p) snet_abort("`p` must be an integer if above 1.")
       g <- igraph::sample_gnm(n, m = p, directed = directed)
     } else {
       g <- igraph::sample_gnp(n, p = p, directed = directed)
     }
   } else if (length(n) == 2) {
     if(p > 1){
-      if(!as.integer(p)==p) snet_abort("`p` must be an integer if above 1.")
+      if(as.integer(p)!=p) snet_abort("`p` must be an integer if above 1.")
       if (utils::packageVersion("igraph") >= "2.2.0") {
         g <- igraph::sample_bipartite_gnm(n[1], n[2],
                                           m = p,
@@ -313,7 +313,7 @@ generate_smallworld <- function(n, p = 0.05, directed = FALSE, width = 2) {
 #' Barabasi, Albert-Laszlo, and Reka Albert. 1999. 
 #' “Emergence of Scaling in Random Networks.” 
 #' _Science_ 286(5439):509–12. 
-#' \doi{10.1126/science.286.5439.509}.
+#' \doi{10.1126/science.286.5439.509}
 #' @examples
 #' generate_scalefree(12, 0.25)
 #' generate_scalefree(12, 1.25)
@@ -348,8 +348,9 @@ generate_scalefree <- function(n, p = 1, directed = FALSE) {
 #' @references
 #' ## On the forest-fire model
 #' Leskovec, Jure, Jon Kleinberg, and Christos Faloutsos. 2007. 
-#' "\href{https://www.cs.cmu.edu/~jure/pubs/powergrowth-tkdd.pdf}{Graph evolution: Densification and shrinking diameters}". 
+#' "Graph evolution: Densification and shrinking diameters". 
 #' _ACM transactions on Knowledge Discovery from Data_, 1(1): 2-es.
+#' \doi{10.1145/1217299.1217301}
 #' @examples
 #' generate_fire(10)
 #' @export
