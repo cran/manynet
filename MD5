@@ -1,7 +1,7 @@
-f511e0d03139ad2c09633ff86e52f6fd *DESCRIPTION
+f50a34c32cf19885f2a12143a97acf94 *DESCRIPTION
 361d71c6379f4ddf09ca9c8540b8fea1 *LICENSE
 ca73787c5059053358dea8f0022414a3 *NAMESPACE
-e332cfdd1119a56f808135cc5d59910b *NEWS.md
+40c8b2b52893f1c588990a49906ef8a6 *NEWS.md
 1a103b58a85b929ef2a1c4a9f4b02883 *R/class_describe.R
 572ae337b0299e6a3902c34790838b9c *R/class_interface.R
 040da1d8b8dbf055a50dc6b9bef5ccbe *R/class_marks.R
@@ -24,7 +24,7 @@ bf97671930900bc355df3f48b73c9f71 *R/data_fict.R
 e6df816107c9723c48d2ed045e6e2524 *R/make_read.R
 c74bf4fffb796ce61f9a5db162ad8ea6 *R/manip_changes.R
 bb0c6e6cfc2b86cf1d3d8435881cf732 *R/manip_global.R
-a84ca281079b11f59babaa95ecd33a27 *R/manip_info.R
+13433d0e342962fd4eeb73953586bf27 *R/manip_info.R
 628dfcd2ff29017d94a402489cf64221 *R/manip_nodes.R
 1ac1014b4c1208133cfb1cf636b13cb0 *R/manip_ties.R
 7ca5b33930eca9a25cd10ca2d569bfb2 *R/manynet-data.R
@@ -36,7 +36,7 @@ b470e6fbe8bfcb6bad2ccd2c0db1cf2a *R/mark_classes.R
 58fa1f3a69715b5312756c1b04f9a470 *R/mark_features.R
 9e8a339d6e9481e1f48b4ae0aa0dbcc2 *R/mark_format.R
 50e48b7340ea0a0060d74e230ac05cd1 *R/measure_attributes.R
-31d8d190f43dc611fdc2e31690d760ea *R/measure_properties.R
+056c17ffaa4156cddd6f7c5bc0e24cba *R/measure_properties.R
 71f7708ef24b5d706e1a05d05873632d *R/modif_correlation.R
 1dfa17accd55154008266794feb94eeb *R/modif_direction.R
 069e51534a7bd442620fe9c6f3e65a09 *R/modif_from.R
@@ -150,7 +150,7 @@ ac7f1004177671bdbe3f70c2dd490f78 *man/make_stocnet.Rd
 52d855d6e5e970481089212e45fb5a2d *man/make_write.Rd
 af451e513ff9f235d9097fca9ddfb2c8 *man/manip_changes.Rd
 434e37b06ad8301abfe93bdfbcab371b *man/manip_global.Rd
-956d64751ee6abbb4026907c83436de9 *man/manip_info.Rd
+e31ccd0dcd2fa70e0bf63acb360fb170 *man/manip_info.Rd
 a009c33fdb601c4ac337509ccc9b6074 *man/manip_nodes_attr.Rd
 f928af09b115ae91ea2a0c3d3ff8faac *man/manip_nodes_num.Rd
 fbb0cda5ae793fafcfaea1747d6e3416 *man/manip_ties_attr.Rd
@@ -194,7 +194,7 @@ efec1c3e6d8f1ef526d40df7c87c0b56 *tests/testthat/sheets/test_matrix.csv
 327266b6086e4cbea4f27a0f6b1dedbf *tests/testthat/sheets/ucinettest.##d
 bdd9ad82944ff4c6cc1171e853071012 *tests/testthat/sheets/ucinettest.##h
 bdd9ad82944ff4c6cc1171e853071012 *tests/testthat/sheets/ucinettest1.##h
-085d68aca332f223c71e94a92b8fd86b *tests/testthat/test-class_stocnet.R
+3c363a4f161156465f8d44fdccd2d731 *tests/testthat/test-class_stocnet.R
 1eeb89cd35781b33e73a769fba37d6ca *tests/testthat/test-coercion.R
 d94bc6d8d1518f9a04a3e2a16022a235 *tests/testthat/test-make_create.R
 705f9322a4331a5ecc7ae307857208ea *tests/testthat/test-make_generate.R
