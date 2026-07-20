@@ -81,7 +81,7 @@ as_nodelist.network <- function(.data) {
   out <- .data
   out <- network::as.data.frame.network(out, unit = "vertices", 
                                         attrs_to_ignore = NULL)
-  if("na" %in% names(out) && sum(out$names)==0) out$na <- NULL
+  if("na" %in% names(out) && sum(out$na)==0) out$na <- NULL
   if(is_twomode(.data)) out$mode <- c(rep(FALSE, .data$gal$bipartite),
                                  rep(TRUE, .data$gal$n - .data$gal$bipartite))
   if(is_labelled(.data)) out$label <- network::network.vertex.names(.data)
@@ -349,9 +349,9 @@ as_matrix.data.frame <- function(.data,
                              as.character(.data$to),
                              as.character(.data$from))
     .data <- structure(as.numeric(.data[,3]),
-                     .Dim = c(as.integer(length(nodes1)),
-                              as.integer(length(nodes2))),
-                     .Dimnames = list(nodes1, nodes2))
+                     dim = c(as.integer(length(nodes1)),
+                             as.integer(length(nodes2))),
+                     dimnames = list(nodes1, nodes2))
   }
   if(!is_twomode(.data) && all(rownames(.data) == as.character(seq_nodes(.data)))) attr(.data, "dimnames") <- NULL
   if(!is_twomode(.data) && sum(.data[lower.tri(.data)])==0) .data <- .data + t(.data)
