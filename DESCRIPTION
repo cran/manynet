@@ -1,6 +1,6 @@
 Package: manynet
 Title: Many Ways to Make, Manipulate, and Modify Myriad Networks
-Version: 2.2.1
+Version: 2.2.3
 Description: Many tools for making, manipulating, and modifying many different types of networks.
    All functions operate with matrices, edge lists, and 'igraph', 'network', and 'tidygraph' objects,
    on directed, multiplex, multimodal, signed, and other networks.
@@ -16,8 +16,8 @@ LazyData: true
 Depends: R (>= 4.1.0)
 Imports: cli, dplyr (>= 1.1.0), igraph (>= 2.1.0), network, pillar,
         tidygraph
-Suggests: knitr, methods, readxl, rmarkdown, RSiena, sna, testthat (>=
-        3.0.0), tibble, xml2
+Suggests: methods, readxl, RSiena, sna, testthat (>= 3.0.0), tibble,
+        xml2
 Authors@R: 
     c(person(given = "James",
              family = "Hollway",
@@ -37,13 +37,13 @@ Authors@R:
     )
 Config/Needs/build: roxygen2, devtools
 Config/Needs/check: covr, lintr, spelling
-Config/Needs/website: pkgdown
+Config/Needs/website: pkgdown, learnr
 Config/testthat/parallel: true
 Config/testthat/edition: 3
-Config/testthat/start-first: mark_is
+Config/testthat/start-first: tutorials_manynet, mark_is
 Config/roxygen2/version: 8.0.0
 NeedsCompilation: no
-Packaged: 2026-07-20 10:22:05 UTC; hollway
+Packaged: 2026-07-30 13:40:25 UTC; hollway
 Author: James Hollway [cre, aut, ctb] (IHEID, ORCID:
     <https://orcid.org/0000-0002-8361-9647>),
   Henrique Sposito [ctb] (ORCID: <https://orcid.org/0000-0003-3420-6085>),
@@ -51,4 +51,4 @@ Author: James Hollway [cre, aut, ctb] (IHEID, ORCID:
   Alvaro Uzaheta [ctb]
 Maintainer: James Hollway <james.hollway@graduateinstitute.ch>
 Repository: CRAN
-Date/Publication: 2026-07-20 11:50:02 UTC
+Date/Publication: 2026-07-30 16:20:11 UTC

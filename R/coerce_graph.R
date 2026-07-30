@@ -58,6 +58,21 @@ as_igraph.data.frame <- function(.data,
     graph <- igraph::graph_from_data_frame(.data,
                                            vertices = data.frame(name = 1:max(c(.data$from, .data$to))))
   } else graph <- igraph::graph_from_data_frame(.data)
+  # An edgelist carries no directedness flag of its own, so directedness is
+  # inferred from reciprocity, matching `is_directed.data.frame()`. That mark
+  # cannot be called here because it routes back through `as_igraph()`, so
+  # reciprocity is read off the graph just constructed. Without this the
+  # coercion always returns a directed graph, and marks such as `is_acyclic()`
+  # then disagree with every other representation of the same network.
+  recip <- igraph::reciprocity(graph, mode = "default")
+  if (isTRUE(recip == 0)) {
+    # no mutual dyads, so no edges to merge: `each` keeps tie attributes
+    graph <- igraph::as_undirected(graph, mode = "each")
+  } else if (isTRUE(recip == 1)) {
+    # every dyad is listed in both directions, so collapse the duplicates
+    graph <- igraph::as_undirected(graph, mode = "collapse",
+                                   edge.attr.comb = "first")
+  }
   if (!is_labelled(.data)) {
     graph <- igraph::delete_vertex_attr(graph, "name")
   }
@@ -151,12 +166,13 @@ as_igraph.network <- function(.data,
                                                                  "max"))
     }
   }
-  # Add remaining node level attributes
-  if (length(attr) > 2) {
-    for (a in attr[2:length(attr)]) {
-      graph <- igraph::set_vertex_attr(graph, name = a,
-                                       value = sapply(.data[[3]], "[[", a))
-    }
+  # Add remaining node level attributes.
+  # 'na' and 'vertex.names' are network's internal bookkeeping:
+  # the latter is already carried by the sociomatrix's dimnames as 'name',
+  # so copying it again would shadow those labels on the way back.
+  for (a in setdiff(attr, c("na", "vertex.names"))) {
+    graph <- igraph::set_vertex_attr(graph, name = a,
+                                     value = sapply(.data[[3]], "[[", a))
   }
   # because network can have vertex names that are integers (i.e. just node IDs), 
   # we remove them since they are really anonymous.
@@ -167,8 +183,11 @@ as_igraph.network <- function(.data,
 
 #' @export
 as_igraph.stocnet <- function(.data, twomode = FALSE) {
+  # `.data$info$directed` is authoritative here, so use it rather than letting
+  # graph_from_data_frame() default every stocnet to a directed graph.
+  directed <- is_directed(.data)
   if(is.null(as_nodelist(.data)) || length(as_nodelist(.data)) == 0){
-    out <- igraph::graph_from_data_frame(as_edgelist(.data))
+    out <- igraph::graph_from_data_frame(as_edgelist(.data), directed = directed)
     out <- to_unlabelled(out)
   } else {
     vertices <- as_nodelist(.data)
@@ -179,10 +198,12 @@ as_igraph.stocnet <- function(.data, twomode = FALSE) {
       vertices <- vertices |> dplyr::mutate(type = mode == unique(mode)[2]) |>
         dplyr::select(dplyr::any_of("name"), dplyr::everything(), -mode)
     if(is_labelled(.data)){
-      out <- igraph::graph_from_data_frame(as_edgelist(.data), 
+      out <- igraph::graph_from_data_frame(as_edgelist(.data),
+                                           directed = directed,
                                            vertices = vertices)
     } else {
-      out <- igraph::graph_from_data_frame(as_edgelist(.data)) |>
+      out <- igraph::graph_from_data_frame(as_edgelist(.data),
+                                           directed = directed) |>
         bind_node_attributes(vertices)
     }
     
@@ -600,9 +621,8 @@ as_network.igraph <- function(.data,
   if ("name" %in% colnames(attr)) attr <- subset(attr, select = c(-name))
   if ("type" %in% colnames(attr)) attr <- subset(attr, select = c(-type))
   out <- as_network(as_matrix(.data))
-  if (length(attr) > 0) {
-    out <- network::set.vertex.attribute(out, names(attr), attr)
-  }
+  out <- set_network_node_attributes(out, attr)
+  out <- set_network_tie_attributes(out, .data)
   out
 }
 
@@ -614,8 +634,39 @@ as_network.tbl_graph <- function(.data,
   if ("name" %in% colnames(attr)) attr <- subset(attr, select = c(-name))
   if ("type" %in% colnames(attr)) attr <- subset(attr, select = c(-type))
   out <- as_network(as_matrix(.data))
-  if (length(attr) > 0) {
-    out <- network::set.vertex.attribute(out, names(attr), attr)
+  out <- set_network_node_attributes(out, attr)
+  out <- set_network_tie_attributes(out, as_igraph(.data))
+  out
+}
+
+# `network::set.vertex.attribute()` interprets a single-column data frame as
+# one value (the whole column) to be assigned to every vertex,
+# so attributes are set one at a time.
+set_network_node_attributes <- function(out, attr) {
+  for (a in names(attr))
+    out <- network::set.vertex.attribute(out, a, attr[[a]])
+  out
+}
+
+# Since networks are constructed from a sociomatrix, which only carries the
+# weight, any other tie attributes are copied across dyad by dyad.
+set_network_tie_attributes <- function(out, .data) {
+  attrs <- setdiff(igraph::edge_attr_names(.data), c("weight", "na"))
+  if (length(attrs) == 0) return(out)
+  el <- igraph::as_edgelist(.data, names = FALSE)
+  nbhd <- ifelse(network::is.directed(out), "out", "combined")
+  eids <- vapply(seq_len(nrow(el)), function(e) {
+    ids <- network::get.edgeIDs(out, v = el[e,1], alter = el[e,2],
+                                neighborhood = nbhd)
+    if (length(ids) == 1) ids else NA_integer_
+  }, integer(1))
+  for (a in attrs) {
+    vals <- igraph::edge_attr(.data, a)
+    keep <- !is.na(eids)
+    # A list is passed since `network` rejects classed vectors (e.g. dates).
+    if (any(keep))
+      out <- network::set.edge.attribute(out, a, as.list(vals[keep]),
+                                         e = eids[keep])
   }
   out
 }

@@ -6,8 +6,8 @@
 \alias{to_ego}
 \alias{to_time}
 \alias{to_wave}
-\alias{to_giant}
 \alias{to_component}
+\alias{to_giant}
 \alias{to_no_isolates}
 \alias{to_subgraph}
 \alias{to_blocks}
@@ -17,13 +17,13 @@ to_no_missing(.data)
 
 to_ego(.data, node, max_dist = 1, min_dist = 0, direction = c("out", "in"))
 
-to_time(.data, time)
+to_time(.data, time = NULL)
 
-to_wave(.data, time)
+to_wave(.data, time = NULL)
 
-to_giant(.data)
+to_component(.data, component = 1, connectivity = c("weak", "strong"))
 
-to_component(.data)
+to_giant(.data, connectivity = c("weak", "strong"))
 
 to_no_isolates(.data)
 
@@ -56,7 +56,24 @@ and 2 excludes ego's direct alters.}
 “in” on incoming ties, and "all" on either/the sum of the two.
 By default "all".}
 
-\item{time}{A time point or wave at which to present the network.}
+\item{time}{A time point or wave at which to present the network.
+For an interval (spell) network that records tie \code{begin}/\code{end} lifespans,
+\code{time} may be omitted, in which case a list of slices is returned,
+one per change point (each moment at which some tie begins or ends).}
+
+\item{component}{Which component to retain.
+By default 1, i.e. the largest (giant) component,
+with 2 the second largest, and so on.
+Alternatively, the name of a node,
+in which case the component containing that node is retained.}
+
+\item{connectivity}{Character string, "weak" treats a directed network's
+components as if the network were undirected, and "strong" requires ties
+in both directions between members.
+This is ignored for undirected networks, where the two notions coincide.
+Note that the default differs by function: marks that assert
+connectedness default to "strong", while functions that scope or split a
+network into components default to "weak".}
 
 \item{...}{Arguments passed on to dplyr::filter}
 
@@ -78,11 +95,18 @@ Transforming means that the returned object may have different dimensions
 than the original object.
 \itemize{
 \item \code{to_ego()} scopes a network into the local neighbourhood of a given node.
-\item \code{to_giant()} scopes a network into one including only the main component and no smaller components or isolates.
-\code{to_component()} is an alias, naming the single component that is retained
-(the singular counterpart of \code{to_components()}, which returns a list of all of them).
+\item \code{to_component()} scopes a network to a single one of its components,
+either the \code{component}th largest or the one containing a named node.
+It is the singular counterpart of \code{to_components()},
+which returns a list of all of them, largest first.
+\item \code{to_giant()} scopes a network into one including only the main component
+and no smaller components or isolates.
+It is a wrapper, such that \code{to_giant(.data)} is \code{to_component(.data, 1)}.
 \item \code{to_time()} scopes a longitudinal network to the network as it stood at a given wave or time point.
 \code{to_wave()} is an alias, using the wave-based vocabulary of \code{net_waves()} and \code{to_waves()}.
+For interval (spell) networks with tie \code{begin}/\code{end} lifespans, \code{to_time()}
+returns the ties active at that moment, or -- when \code{time} is omitted -- a
+list of slices, one per change point (each tie beginning or end).
 \item \code{to_no_isolates()} scopes a network into one excluding all nodes without ties.
 \item \code{to_no_missing()} scopes a network to one retaining only complete cases,
 i.e. nodes with no missing values.
@@ -96,14 +120,22 @@ Below are the currently implemented S3 methods:
 
 \if{html}{\out{<div class="sourceCode">}}\preformatted{               data.frame default igraph list matrix network tbl_graph
 to_blocks               *       *      *           *       *         *
+to_component            *       *      *           *       *         *
 to_ego                          *      *                             *
 to_egos                 *       *      *           *       *         *
-to_giant                *       *      *           *       *         *
 to_no_isolates          *       *      *    *      *       *         *
 to_no_missing                   *                                    *
 to_subgraph             *       *      *           *       *         *
 to_subgraphs                    *      *                   *         *
 }\if{html}{\out{</div>}}
+
+For interval (spell) networks, whose ties carry \code{begin}/\code{end} lifespans
+(e.g. \code{irps_wwi}), \code{to_time()} scopes to the ties active at \code{time}, using
+the half-open convention (\verb{begin <= time < end}) shared with
+\code{network::networkDynamic}. When \code{time} is omitted, one such slice is
+returned for each distinct change point (every moment at which some tie
+begins or ends), as a named list, so that the evolving network can be
+iterated over or animated (e.g. with \code{autograph::grapht()}).
 }
 \section{\code{to_blocks()}}{
 
@@ -113,6 +145,13 @@ while preserving the topology of the original structures.
 }
 
 \examples{
+  # A single snapshot of the ties active in a given year:
+  to_time(irps_wwi, 1901)
+  # Or one slice per change point (each tie beginning or end):
+  length(to_time(irps_wwi))
+  to_component(fict_greys, 2)
+  to_component(fict_greys, "Miranda Bailey")
+  to_giant(fict_greys)
 ison_adolescents |>
   mutate_ties(wave = sample(1995:1998, 10, replace = TRUE)) |>
   to_waves(attribute = "wave") |>

@@ -43,8 +43,10 @@ is_twomode.tbl_graph <- function(.data) {
 #' @export
 is_twomode.matrix <- function(.data) {
   out <- dim(.data)[1] != dim(.data)[2]
+  # `isTRUE()` guards against partially labelled matrices,
+  # where comparing NA names would otherwise return NA.
   if(!out & is_labelled(.data))
-    out <- !all(rownames(.data)==colnames(.data))
+    out <- isTRUE(!all(rownames(.data)==colnames(.data)))
   out
 }
 
@@ -57,8 +59,10 @@ is_twomode.network <- function(.data) {
 
 #' @export
 is_twomode.data.frame <- function(.data) {
-  is_edgelist(.data) && 
-    length(intersect(.data[,1], .data[,2])) == 0
+  # `[[` rather than `[` because `as_edgelist()` returns a tibble, for which
+  # `.data[,1]` is a one-column tibble rather than the column vector.
+  is_edgelist(.data) &&
+    length(intersect(.data[[1]], .data[[2]])) == 0
 }
 
 #' @export
@@ -129,7 +133,9 @@ is_labelled.network <- function(.data) {
 
 #' @export
 is_labelled.data.frame <- function(.data) {
-  is.character(.data[,1]) & is.character(.data[,2])
+  # `[[` rather than `[` because `as_edgelist()` returns a tibble, for which
+  # `.data[,1]` is a one-column tibble rather than the column vector.
+  is.character(.data[[1]]) & is.character(.data[[2]])
 }
 
 #' @export
@@ -153,8 +159,8 @@ is_attributed <- function(.data) UseMethod("is_attributed")
 
 #' @export
 is_attributed.default <- function(.data) {
-  length(setdiff(net_node_attributes(.data), c("type","mode",
-                                               "name","label")))!=0
+  length(setdiff(net_node_attributes(.data),
+                 manynet_reserved_node_attributes))!=0
 }
 
 #' @rdname mark_format_node
@@ -368,12 +374,13 @@ is_complex.matrix <- function(.data) {
 
 #' @export
 is_complex.data.frame <- function(.data) {
-  any(.data[,1] == .data[,2])
+  any(.data[[1]] == .data[[2]])
 }
 
 #' @export
 is_complex.stocnet <- function(.data) {
-  any(.data$from == .data$to)
+  # a stocnet keeps its ties in `.data$ties`, not at the top level
+  if(is.null(.data$ties)) FALSE else any(.data$ties$from == .data$ties$to)
 }
 
 #' @export
