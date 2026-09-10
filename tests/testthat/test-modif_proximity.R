@@ -26,10 +26,10 @@ test_that("to_correlation is unchanged by delegating to to_proximity", {
   dimnames(dir) <- dimnames(und) <- dimnames(cpx) <-
     list(LETTERS[1:n], LETTERS[1:n])
   # each fixture takes a different branch, so all four are exercised
-  expect_equal(manynet:::.cor_method(und), "diag")
-  expect_equal(manynet:::.cor_method(dir), "recip")
-  expect_equal(manynet:::.cor_method(cpx), "complex")
-  expect_equal(manynet:::.cor_method(matrix(1, n, 7)), "all")
+  expect_equal(.cor_method(und), "diag")
+  expect_equal(.cor_method(dir), "recip")
+  expect_equal(.cor_method(cpx), "complex")
+  expect_equal(.cor_method(matrix(1, n, 7)), "all")
   for(M in list(und, dir, cpx)) expect_equal(to_correlation(M, "diag"), legacy(M))
   expect_true(all(diag(to_correlation(und)) == 1))
 })
@@ -149,15 +149,11 @@ test_that("to_proximity shares to_mode1()'s measures and conventions", {
   expect_equal(rk(to_proximity(bin, "hamming", dyad = "include")),
                rk(to_proximity(bin, "rand", dyad = "include")))
   # a valued network is dichotomised for the binary-only measures. snet_warn()
-  # emits a cli alert, which is a message rather than a warning, and cli alerts
-  # are silenced unless manynet is set to be verbose
-  op <- options(snet_verbosity = "verbose")
-  on.exit(options(op), add = TRUE)
   # both the pairwise and the vectorised path say so
-  expect_message(to_proximity(prox_mat * 2, "jaccard"), "binary")
-  expect_message(to_proximity(prox_mat * 2, "jaccard", dyad = "include"),
+  expect_warning(to_proximity(prox_mat * 2, "jaccard"), "binary")
+  expect_warning(to_proximity(prox_mat * 2, "jaccard", dyad = "include"),
                  "binary")
-  expect_equal(suppressMessages(to_proximity(prox_mat * 2, "jaccard")),
+  expect_equal(suppressWarnings(to_proximity(prox_mat * 2, "jaccard")),
                to_proximity(prox_mat, "jaccard"))
   # the result is square, symmetric, and has a zeroed diagonal
   out <- to_proximity(prox_mat, "pearson")

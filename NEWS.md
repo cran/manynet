@@ -1,3 +1,127 @@
+# manynet 2.3.4
+
+## Making
+
+- Fixed a couple of `generate_islands()` errors
+  - Fixed to grow bridges as `choose(islands, 2)` and not as `islands`
+  - Fixed deriving `p` from a two-mode network with a one-mode dyad count
+- Added two-mode support to the last three `generate_*()` functions (closes #150)
+  - `generate_fire()` burns along two-paths, closing four-cycles instead of triangles
+  - `generate_islands()` builds a bipartite blockmodel with a planted diagonal
+  - `generate_citations()` keeps its recency mechanism, but the target crosses the mode divide, 
+  and both modes grow so that the concentration turns over
+
+## Manipulating
+
+- Fixed `bind_changes.igraph()` replacing the changelog instead of appending
+- Added remaining row-wise verbs for the globals component (closes #149)
+  - Added `bind_globals()`
+  - Added `filter_globals()`
+  - Added `arrange_globals()`
+  - Added `delete_globals()`
+  - Added `mutate_globals()` to alter table columns
+- Improved `to_time()` to scope globals as it already scoped ties, changes, and missings
+
+## Modifying
+
+- Added `to_positive()` to shortcut keeping just the positive ties of a signed network (closes #176)
+
+## Marking
+
+- Fixed `is_signed()` to check for a 'sign' column or a negative 'weight' column
+
+# manynet 2.3.3
+
+## Package
+
+- Added a fourth `snet_verbosity` level, 'debug', so each level has one job
+  - 'normal' reports what a function chose, 'verbose' that it is running
+  - `snet_minor_info()` moves to 'debug', so an interactive session is quieter
+
+## Classes
+
+- Added `print()` and `summary()` methods for a 'tie_member' class (closes #168)
+- Improved `add_info.stocnet()` to check and conform the names it is given
+  - Naming one nodeset of a two-mode network now aborts, as for an igraph
+  - 'nodes' and 'ties' set the reserved 'modes' and 'layers'
+  - An unrecognised field is kept, but warned about
+
+## Coercion
+
+- Fixed `as_network()` losing the graph attributes on the way through igraph
+- Fixed `as_siena()` rendering a node's non-response as a changing covariate
+
+## Making
+
+- Fixed `generate_configuration()` reading the modes of a 'stocnet'
+
+## Manipulating
+
+- Improved `add_node_attribute()` to take a vector as long as any one mode
+  - Reads `mode_nodes()`, so it serves three or more modes and not only two
+
+## Marking
+
+- Fixed `is_multilevel.igraph()` marking a network that has no ties within a level
+
+## Modifying
+
+- Fixed `to_labelled()` storing labels that are not character
+
+## Tutorials
+
+- Fixed error in packaged data multichoice question
+
+# manynet 2.3.2
+
+## Package
+
+- Added three `snet_verbosity` levels, 'quiet', 'normal', and 'verbose'
+  - `snet_info()` and `snet_success()` report from 'normal'
+  - `snet_minor_info()` and the `snet_progress_*()` functions report from 'verbose'
+- Improved `snet_warn()` and `snet_unavailable()` so that neither is silenced (closes #169)
+
+## Classes
+
+- Improved `describe_nodes()` on networks of three or more modes (closes #174)
+- Fixed `keep_nodes()` to drop and reindex `$missings` (closes #173)
+  - `reserved_cols()` now names every out-of-range id, instead of erroring
+- Improved `validate_stocnet()` to read a node 'id' as an id and not a label
+- Improved `validate_stocnet()` to read a tie 'date' as another name for a time
+
+## Coercion
+
+- Fixed `as_igraph.stocnet()` on multimodal and multilevel networks (closes #170)
+
+## Manipulating
+
+- Added `delete_nodes.stocnet()` to reindex every component, including changes
+
+## Modifying
+
+- Added `to_mode1.stocnet()` and `to_mode2.stocnet()` to carry changes
+- Added `keep = "both"` to `to_unsigned()`, which keeps every tie but not its sign
+- Fixed `to_unsigned.data.frame()` erroring on a signed edgelist
+  - now drops the ties of the other sign, as the other methods do
+  - now reads signs held as negative weights as well as in a 'sign' column
+- Fixed `to_unsigned.network()` ignoring its `keep` argument
+- Fixed `to_layer()` pointing arcs at the wrong nodes (closes #170)
+
+## Marking
+
+- Improved `is_directed()` on a network tied within a level as well as between
+- Fixed `is_multilevel.igraph()` looping through `tie_is_twomode()`
+- Added `layer_is_directed()`, reporting each layer of a network (closes #171)
+
+## Measuring
+
+- Fixed `mode_nodes()` to count the nodes in each of three or more modes
+- Fixed `net_modes.igraph()` to count the levels an igraph 'lvl' attribute records
+
+## Data
+
+- Corrected `ison_southern_women` to be changing by event dates
+
 # manynet 2.3.1
 
 ## Marking
@@ -6,7 +130,7 @@
 
 ## Measures
 
-- Fixed `tie_attribute.stocnet)` and `node_attribute.stocnet())`
+- Fixed `tie_attribute.stocnet()` and `node_attribute.stocnet()`
   - Returns every attribute where no attribute is named, as `.igraph` method already did
   - Reports tie attributes without 'from' and 'to', which identify a tie rather than describe it
 

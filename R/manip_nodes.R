@@ -92,6 +92,24 @@ delete_nodes.network <- function(.data, nodes){
   as_network(igraph::delete_vertices(as_igraph(.data), v = nodes))
 }
 
+#' @export
+delete_nodes.stocnet <- function(.data, nodes){
+  # A stocnet holds its changes and its missings in tables of node indices,
+  # which the igraph route carries across unrenumbered because they travel as
+  # graph attributes. `keep_nodes()` renumbers every component together.
+  keep_nodes(.data, .nodes_kept(.data, nodes))
+}
+
+# The nodes a call names, as the indices of the nodes it leaves behind. A call
+# can name them by index, by label, or by a logical mark of which to drop.
+.nodes_kept <- function(.data, nodes){
+  all <- seq_nodes(.data)
+  dropped <- if(is.logical(nodes)) all[nodes] else
+    if(is.character(nodes)) match(nodes, node_labels(.data)) else
+      as.integer(nodes)
+  setdiff(all, dropped[!is.na(dropped)])
+}
+
 #' @rdname manip_nodes_num
 #' @importFrom tidygraph node_is_isolated
 #' @importFrom dplyr filter
@@ -269,6 +287,17 @@ keep_nodes <- function(.data, kept){
     out_changes <- .data$changes
   }
 
+  # The missings list dyads, so dropping nodes drops the dyads either of whose
+  # ends is gone, and renumbers the rest, exactly as it does for the ties.
+  if(!is.null(.data$missings) && nrow(.data$missings) > 0){
+    out_missings <- dplyr::filter(.data$missings, from %in% kept, to %in% kept) |>
+      dplyr::mutate(from = match(from, kept),
+                    to = match(to, kept))
+    if(nrow(out_missings) == 0) out_missings <- NULL
+  } else {
+    out_missings <- .data$missings
+  }
+
   # Dropping nodes can drop the last tie of a layer, and the information on
   # that layer goes with it.
   out_info <- if(!is.null(out_ties) && "layer" %in% names(out_ties)){
@@ -277,7 +306,7 @@ keep_nodes <- function(.data, kept){
   } else .data$info
 
   make_stocnet(nodes = out_nodes, ties = out_ties, changes = out_changes,
-               globals = .data$globals, missings = .data$missings, info = out_info)
+               globals = .data$globals, missings = out_missings, info = out_info)
 }
 
 #' @rdname manip_nodes_num
@@ -397,9 +426,26 @@ add_node_attribute.stocnet <- function(.data, attr_name, vector){
   out <- .data
   if(is.null(out$nodes)) out$nodes <- dplyr::tibble(.rows = net_nodes(.data))
   if(length(vector) != nrow(out$nodes))
-    snet_abort(paste("The vector must be as long as the network has nodes:",
-                     "{nrow(out$nodes)}, not {length(vector)}."))
+    vector <- .pad_to_modes(vector, .data)
   out$nodes[[attr_name]] <- vector
+  out
+}
+
+# An attribute of one mode, such as an attribute of the events of a two-mode
+# network, is as long as that mode and not as long as the network. The values
+# are padded with NA so that they land on the nodes they describe. The nodes
+# of one mode do not have to be next to one another in the nodes table, so the
+# values go to the rows of that mode and not to a block of rows.
+# `mode_nodes()` is read rather than `infer_dims()` because it counts
+# three or more modes, where `infer_dims()` coerces to igraph and counts two.
+.pad_to_modes <- function(vector, .data){
+  sizes <- mode_nodes(.data)
+  hits <- which(length(vector) == sizes)
+  if(net_modes(.data) < 2 || length(hits) != 1)
+    snet_abort(paste("The vector must be as long as the network has nodes:",
+                     "{net_nodes(.data)}, not {length(vector)}."))
+  out <- rep(NA, sum(sizes))
+  out[.mode_index(.data$nodes$mode, mode_names(.data)) == hits] <- vector
   out
 }
 

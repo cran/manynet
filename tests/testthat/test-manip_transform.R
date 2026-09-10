@@ -409,13 +409,9 @@ test_that("binary-only measures dichotomise valued networks", {
   set.seed(1234)
   valued <- sw_mat
   valued[valued == 1] <- sample(1:3, sum(valued == 1), replace = TRUE)
-  # snet_warn() emits a cli alert, which is a message rather than a warning,
-  # and cli alerts are silenced unless manynet is set to be verbose
-  op <- options(snet_verbosity = "verbose")
-  on.exit(options(op), add = TRUE)
-  expect_message(to_mode1(valued, "jaccard"), "binary")
-  # dichotomising is what the message says it does
-  expect_equal(suppressMessages(to_mode1(valued, "jaccard")),
+  expect_warning(to_mode1(valued, "jaccard"), "binary")
+  # dichotomising is what the warning says it does
+  expect_equal(suppressWarnings(to_mode1(valued, "jaccard")),
                to_mode1((valued > 0) * 1, "jaccard"))
   # whereas a measure defined for valued data uses the values
   expect_silent(to_mode1(valued, "crossmin"))
@@ -424,10 +420,14 @@ test_that("binary-only measures dichotomise valued networks", {
 })
 
 test_that("every projection measure works across classes", {
+  # a `to_*()` function returns the class it was given, so the fixture's own
+  # class is what each projection of it should come back as
   for (s in c("match", "overlap", "crossmin", "bonacich", "covariance")) {
-    expect_s3_class(to_mode1(ison_southern_women, s), "tbl_graph")
+    expect_s3_class(to_mode1(ison_southern_women, s), class(ison_southern_women)[1])
     expect_true(is.matrix(to_mode1(sw_mat, s)))
-    expect_s3_class(to_mode2(ison_southern_women, s), "tbl_graph")
+    expect_s3_class(to_mode2(ison_southern_women, s), class(ison_southern_women)[1])
+    expect_s3_class(to_mode1(as_tidygraph(ison_southern_women), s), "tbl_graph")
+    expect_s3_class(to_mode2(as_tidygraph(ison_southern_women), s), "tbl_graph")
   }
 })
 
@@ -566,39 +566,42 @@ norm_mat <- matrix(c(0, 1, 2, 0,
                      2, 0, 0, 0,
                      0, 0, 0, 0), 4, 4, byrow = TRUE)
 
+# The fourth node is an isolate, so every call warns that a row and a column
+# have no value to scale against. The warning is stated on its own below, and
+# muffled in the tests that read the values instead.
+norm_of <- function(...) quietly(to_normalised(...))
+
 test_that("to_normalised rescales by each rule", {
-  expect_equal(to_normalised(norm_mat, rule = "sum", across = "rows")[1, ],
+  expect_equal(norm_of(norm_mat, rule = "sum", across = "rows")[1, ],
                c(0, 1/3, 2/3, 0))
-  expect_equal(to_normalised(norm_mat, rule = "max", across = "rows")[1, ],
+  expect_equal(norm_of(norm_mat, rule = "max", across = "rows")[1, ],
                c(0, 0.5, 1, 0))
   # the mean counts every dyad and not just those tied, so the divisor is 3/4
-  expect_equal(to_normalised(norm_mat, rule = "mean", across = "rows")[1, ],
+  expect_equal(norm_of(norm_mat, rule = "mean", across = "rows")[1, ],
                c(0, 4/3, 8/3, 0))
   expect_equal(to_normalized, to_normalised)
 })
 
 test_that("to_normalised across both keeps a symmetric network symmetric", {
-  expect_true(isSymmetric(to_normalised(norm_mat, rule = "sum")))
-  expect_false(isSymmetric(to_normalised(norm_mat, rule = "sum",
-                                         across = "rows")))
+  expect_true(isSymmetric(norm_of(norm_mat, rule = "sum")))
+  expect_false(isSymmetric(norm_of(norm_mat, rule = "sum",
+                                   across = "rows")))
   # each value is divided by the square root of the two totals multiplied
-  expect_equal(to_normalised(norm_mat, rule = "sum")[1, 2], 1/sqrt(3 * 1))
-  cols <- to_normalised(norm_mat, rule = "sum", across = "columns")
+  expect_equal(norm_of(norm_mat, rule = "sum")[1, 2], 1/sqrt(3 * 1))
+  cols <- norm_of(norm_mat, rule = "sum", across = "columns")
   expect_equal(colSums(cols)[1:3], c(1, 1, 1), ignore_attr = TRUE)
   expect_equal(cols[1, ], c(0, 1, 1, 0))
 })
 
 test_that("to_normalised leaves a node with nothing to scale against", {
-  out <- to_normalised(norm_mat, rule = "sum", across = "rows")
+  out <- norm_of(norm_mat, rule = "sum", across = "rows")
   expect_equal(out[4, ], c(0, 0, 0, 0))
   expect_false(anyNA(out))
   expect_true(all(is.finite(out)))
-  expect_true(all(is.finite(to_normalised(norm_mat, rule = "max",
-                                          across = "rows"))))
-  options(snet_verbosity = "verbose")
-  expect_message(to_normalised(norm_mat, rule = "sum", across = "rows"),
+  expect_true(all(is.finite(norm_of(norm_mat, rule = "max",
+                                    across = "rows"))))
+  expect_warning(to_normalised(norm_mat, rule = "sum", across = "rows"),
                  "no value to be scaled against")
-  options(snet_verbosity = "quiet")
 })
 
 test_that("to_normalised returns a directed network where it must", {
@@ -629,7 +632,7 @@ test_that("to_normalised records the transformation", {
                "sum across rows")
   expect_match(describe_transformations(out), "normalisation")
   # a matrix has nowhere to record it, and is returned as a matrix
-  expect_true(is.matrix(to_normalised(norm_mat)))
+  expect_true(is.matrix(norm_of(norm_mat)))
 })
 
 test_that("to_normalised keeps what the stocnet class holds", {
@@ -743,7 +746,9 @@ test_that("the default filter retains something where disparity cannot", {
   # the p-value approaches 1/e, and nothing is retained at all. This was
   # confirmed against {backbone} (v3.0.4), which returns an empty backbone
   # here too, so it is the filter's behaviour and not this implementation's.
-  expect_equal(sum(tie_is_backbone(ison_karateka, filter = "disparity")), 0)
+  expect_warning(disp <- tie_is_backbone(ison_karateka, filter = "disparity"),
+                 "retains no tie")
+  expect_equal(sum(disp), 0)
   expect_gt(sum(tie_is_backbone(ison_karateka)), 0)
   # LANS scores each node's heaviest tie at zero, so no node is ever stranded
   expect_equal(c(net_nodes(delete_isolates(to_backbone(ison_karateka)))),
@@ -752,16 +757,24 @@ test_that("the default filter retains something where disparity cannot", {
 
 test_that("to_backbone reports what would otherwise pass unnoticed", {
   # `snet_warn()` is silent at the default verbosity, so it is raised here
-  before <- options(snet_verbosity = "verbose")
-  on.exit(options(before), add = TRUE)
   # every filter builds its null model from the ties as the network holds
   # them, so a tie restated at each wave is tested once per wave
   repeated <- to_uniplex(ison_monks, layer = "like")
   expect_true(any(grepl("more than once",
-                        capture_messages(tie_is_backbone(repeated)))))
+                        capture_warnings(tie_is_backbone(repeated)))))
   expect_false(any(grepl("more than once",
-                         capture_messages(tie_is_backbone(ison_networkers)))))
+                         capture_warnings(tie_is_backbone(ison_networkers)))))
   # a threshold that deletes every tie is more likely a mismatch than a finding
   expect_true(any(grepl("retains no tie",
-    capture_messages(to_backbone(ison_karateka, filter = "disparity")))))
+    capture_warnings(to_backbone(ison_karateka, filter = "disparity")))))
+})
+
+test_that("to_mode resolves a mode by name on a stocnet", {
+  sw <- as_stocnet(ison_southern_women)
+  two <- add_info(sw, nodes = c("work events", "social events"))
+  # the word that tells the modes apart reaches one of them
+  expect_equal(as_matrix(to_mode(two, "work")), as_matrix(to_mode1(sw)))
+  expect_equal(as_matrix(to_mode(two, "social")), as_matrix(to_mode2(sw)))
+  # and one that does not is an error, as it is for an igraph
+  expect_error(to_mode(two, "events"), "more than one mode")
 })

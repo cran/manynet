@@ -306,9 +306,24 @@ as_igraph.stocnet <- function(.data, twomode = FALSE) {
     if(is_labelled(.data))
       vertices <- vertices |> dplyr::mutate(name = label) |>
         dplyr::select(name, dplyr::everything(), -label)
+    # igraph records two modes in a logical 'type' attribute, which its
+    # bipartite functions require, and three or more in the 'lvl' attribute
+    # that `to_multilevel()` writes and `as_stocnet()` maps back to 'mode'.
+    # A bare 'mode' column would survive coercion as an ordinary attribute
+    # that no reader looks for, so it is translated either way.
     if(is_twomode(.data))
       vertices <- vertices |> dplyr::mutate(type = mode == unique(mode)[2]) |>
         dplyr::select(dplyr::any_of("name"), dplyr::everything(), -mode)
+    else if(net_modes(.data) > 2){
+      # `mode_names()` is read here rather than inside `mutate()`, where dplyr
+      # masks '.data' with its own pronoun. `as_stocnet()` sorts the levels it
+      # finds and reads their names back out of info, so the level of a mode is
+      # its position in that same order.
+      lvls <- mode_names(.data) %||% unique(vertices$mode)
+      vertices <- vertices |>
+        dplyr::mutate(lvl = match(mode, lvls)) |>
+        dplyr::select(dplyr::any_of("name"), dplyr::everything(), -mode)
+    }
     if(is_labelled(.data)){
       out <- igraph::graph_from_data_frame(as_edgelist(.data),
                                            directed = directed,
@@ -330,7 +345,10 @@ as_igraph.stocnet <- function(.data, twomode = FALSE) {
     }
     
   }
-  if(is_twomode(.data))
+  # A two-mode network holds one tie per dyad, unless it also ties within a
+  # level, in which case those ties can be directed and each arc is its own
+  # row. Collapsing then points both arcs of a dyad at the same pair of nodes.
+  if(is_twomode(.data) && !is_directed(.data))
     out <- to_undirected(out)
   if(!is.null(as_infolist(.data)) && length(as_infolist(.data)) > 0)
     igraph::graph_attr(out) <- as_infolist(.data)
@@ -754,6 +772,7 @@ as_network.igraph <- function(.data,
   out <- as_network(as_matrix(.data))
   out <- set_network_node_attributes(out, attr)
   out <- set_network_tie_attributes(out, .data)
+  out <- set_network_info(out, igraph::graph_attr(as_igraph(.data)))
   out
 }
 
@@ -767,6 +786,7 @@ as_network.tbl_graph <- function(.data,
   out <- as_network(as_matrix(.data))
   out <- set_network_node_attributes(out, attr)
   out <- set_network_tie_attributes(out, as_igraph(.data))
+  out <- set_network_info(out, igraph::graph_attr(as_igraph(.data)))
   out
 }
 
@@ -781,6 +801,25 @@ set_network_node_attributes <- function(out, attr) {
 
 # Since networks are constructed from a sociomatrix, which only carries the
 # weight, any other tie attributes are copied across dyad by dyad.
+# What a network knows about itself as a whole, carried onto a 'network'
+# object. 'network' requires its own attributes of these names to be single
+# values describing the whole network, so an info entry of the same name is
+# dropped rather than merged: a per-layer 'directed' vector, for example, would
+# otherwise replace the scalar and break every 'network' method that reads it.
+# That vector is carried in an attribute of its own instead, which
+# `as_stocnet.network()` reads back as 'directed'. Without it the round trip
+# could not tell an undirected layer from a directed one whose ties happen to
+# be reciprocated.
+set_network_info <- function(out, info) {
+  if (is.null(info) || length(info) == 0) return(out)
+  if (!is.null(info$directed) && !is.null(names(info$directed)))
+    out <- network::set.network.attribute(out, "layer_directed", info$directed)
+  info <- info[setdiff(names(info), c("n", "mnext", "directed", "hyper",
+                                      "loops", "multiple", "bipartite"))]
+  if (length(info) > 0) out$gal <- utils::modifyList(out$gal, info)
+  out
+}
+
 set_network_tie_attributes <- function(out, .data) {
   attrs <- setdiff(igraph::edge_attr_names(.data), c("weight", "na"))
   if (length(attrs) == 0) return(out)
@@ -878,17 +917,7 @@ as_network.stocnet <- function(.data, twomode = FALSE) {
   # network, so an info entry of the same name is dropped rather than merged.
   # A per-layer 'directed' vector, for example, would otherwise replace the
   # scalar set above and break every 'network' method that reads it.
-  info <- as_infolist(.data)
-  # A 'network' object has no place for per-layer directedness, so the vector
-  # is carried in an attribute of its own, which `as_stocnet.network()` reads
-  # back as 'directed'. Without it the round trip could not tell an undirected
-  # layer from a directed one whose ties happen to be reciprocated.
-  if (!is.null(info$directed) && !is.null(names(info$directed)))
-    out <- network::set.network.attribute(out, "layer_directed", info$directed)
-  info <- info[setdiff(names(info), c("n", "mnext", "directed", "hyper",
-                                      "loops", "multiple", "bipartite"))]
-  if (!is.null(info) && length(info) > 0)
-    out$gal <- utils::modifyList(out$gal, info)
+  out <- set_network_info(out, as_infolist(.data))
   if(!is.null(as_changelist(.data)) && length(as_changelist(.data)) > 0)
     out <- network::set.network.attribute(out, "changes", as_changelist(.data))
   if(!is.null(as_globallist(.data)) && length(as_globallist(.data)) > 0)
@@ -1284,7 +1313,12 @@ as_siena.stocnet <- function(.data, twomode = FALSE) {
     }
   }
   # Change variables: behavioural dependents, or varying covariates ----
-  chvars <- setdiff(unique(as.character(x$changes$var)), "active")
+  # A change of 'active' composes the node set, and a change of 'na' records
+  # that a node did not answer, which `.join_missing_ties()` already writes
+  # into the dependent network as missing cells. Neither is a covariate, and
+  # the nodal columns of the same two names are passed over below for the
+  # same reason.
+  chvars <- setdiff(unique(as.character(x$changes$var)), c("active", "na"))
   for (V in chvars) {
     ns <- ns_of(V, set_names[1])
     rows <- .siena_mode_rows(nodes, ns[1], set_names)
@@ -1863,7 +1897,8 @@ as_diffnet.diff_model <- function(.data,
       out$nodes <- node_labels(as_igraph(.data))[out$nodes]
     toa <- stats::setNames(out$t, out$nodes)
     if(is_dynamic(.data)){
-      snet_unavailable()
+      snet_unavailable("Coercing a dynamic network to a diffnet is not yet",
+                       "available.")
       # netdiffuseR::igraph_to_diffnet(graph.list = to_waves(.data))
     } else {
       graph <- as_tidygraph(.data) |> mutate(toa = as.numeric(toa)) |> as_igraph()

@@ -28,6 +28,7 @@ to_invariants <- list(
   to_weighted   = function(o) is_weighted(o),
   to_signed     = function(o) is_signed(o),
   to_unsigned   = function(o) !is_signed(o),
+  to_positive   = function(o) !is_signed(o),
   to_named      = function(o) is_labelled(o),
   to_labelled   = function(o) is_labelled(o),
   to_unnamed    = function(o) !is_labelled(o),
@@ -126,8 +127,8 @@ for (fn in setdiff(to_funs, names(to_argmakers))) {
                    cnet, " network"), {
     outs <- list()
     for (cl in names(canonical_classes)) {
-      outs[[cl]] <- tryCatch(f(canonical_classes[[cl]]),
-                             error = function(e) e)
+      outs[[cl]] <- quietly(tryCatch(f(canonical_classes[[cl]]),
+                                     error = function(e) e))
     }
     errs <- names(outs)[vapply(outs, inherits, logical(1), "error")]
     if (length(errs) == length(outs)) {
