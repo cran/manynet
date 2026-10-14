@@ -6,6 +6,10 @@
 \alias{as_tidygraph}
 \alias{as_network}
 \alias{as_stocnet}
+\alias{as_stocnet.node_measure}
+\alias{as_stocnet.node_member}
+\alias{as_hypergraph}
+\alias{as_stocnet.array}
 \alias{as_siena}
 \alias{as_graphAM}
 \alias{as_diffusion}
@@ -18,7 +22,25 @@ as_tidygraph(.data, twomode = FALSE)
 
 as_network(.data, twomode = FALSE)
 
-as_stocnet(.data, twomode = FALSE)
+as_stocnet(.data, twomode = FALSE, ...)
+
+\method{as_stocnet}{node_measure}(
+  .data,
+  twomode = FALSE,
+  compare = c("absdiff", "diff", "sender", "receiver"),
+  ...
+)
+
+\method{as_stocnet}{node_member}(.data, twomode = FALSE, compare = "same", ...)
+
+as_hypergraph(.data)
+
+\method{as_stocnet}{array}(
+  .data,
+  twomode = FALSE,
+  ...,
+  attribute = c("time", "by", "about", "layer")
+)
 
 as_siena(.data, twomode = FALSE)
 
@@ -44,6 +66,27 @@ distinguishing incidence (two-mode/bipartite) from
 adjacency (one-mode/unipartite) networks.
 By default FALSE.}
 
+\item{...}{Further arguments passed to or from other methods,
+such as \code{attribute} for an array.}
+
+\item{compare}{For a node measure or a node membership, how the values of
+two nodes are compared to give the tie between them;
+see \code{as_matrix()}.
+Comparing by "same" or "absdiff" gives an undirected network,
+and comparing by "diff", "sender", or "receiver" a directed one.
+A comparison of zero is no tie.}
+
+\item{attribute}{For a three-dimensional array, what its third dimension
+holds, which becomes a column of the ties:
+"time" for the waves of a panel,
+"by" for the reporters of a cognitive social structure,
+"about" for the targets of gossip,
+or "layer" for the layers of a multiplex network.
+An array cannot say which of these it holds.
+Where its third dimension is as long as the network has nodes,
+it could hold any of them, so this must be given.
+Otherwise it cannot hold reporters or targets, and "time" is assumed.}
+
 \item{events}{A table (data frame or tibble) of diffusion events
 with columns \code{t} indicating the time (typically an integer) of the event,
 \code{nodes} indicating the number or name of the node involved in the event,
@@ -53,33 +96,36 @@ and \code{event}, which can take on the values "I" for an infection event,
 \value{
 The currently implemented coercions or translations are:
 
-\if{html}{\out{<div class="sourceCode">}}\preformatted{             data.frame default diff_model diffnet igraph list matrix mnet
-as_diffnet                               *                                
-as_diffusion                             *       *      *                *
-as_graphAM                    *                                     *     
-as_igraph             *                  *       *      *           *     
-as_network            *                          *      *           *     
-as_siena                      *                                           
-as_stocnet            *                                 *           *     
-as_tidygraph          *                  *       *      *    *      *     
-             network network.goldfish networkDynamic siena sienadata stocnet
-as_diffnet                                                                  
-as_diffusion                                                                
-as_graphAM                                                                  
-as_igraph          *                *              *     *         *       *
-as_network         *                *              *     *         *       *
-as_siena                                                                   *
-as_stocnet         *                                               *       *
-as_tidygraph       *                *              *     *         *       *
-             tbl_graph
-as_diffnet            
-as_diffusion          
-as_graphAM            
-as_igraph            *
-as_network           *
-as_siena              
-as_stocnet            
-as_tidygraph         *
+\if{html}{\out{<div class="sourceCode">}}\preformatted{              array data.frame default diff_model diffnet hypergraph igraph
+as_diffnet                                      *                          
+as_diffusion                                    *       *                 *
+as_graphAM                           *                                     
+as_hypergraph                        *                             *       
+as_igraph                    *                  *       *                 *
+as_network                   *                          *                 *
+as_siena                             *                                     
+as_stocnet        *          *                                     *      *
+as_tidygraph                 *                  *       *                 *
+              list matrix mnet network network.goldfish networkDynamic
+as_diffnet                                                            
+as_diffusion                 *                                        
+as_graphAM              *                                             
+as_hypergraph                                                         
+as_igraph               *            *                *              *
+as_network              *            *                *              *
+as_siena                                                              
+as_stocnet              *            *                                
+as_tidygraph     *      *            *                *              *
+              node_measure node_member siena sienadata stocnet tbl_graph
+as_diffnet                                                              
+as_diffusion                                                 *          
+as_graphAM                                                              
+as_hypergraph                                                           
+as_igraph                                  *         *       *         *
+as_network                                 *         *       *         *
+as_siena                                                     *          
+as_stocnet               *           *               *       *          
+as_tidygraph                               *         *       *         *
 }\if{html}{\out{</div>}}
 
 \code{as_diffusion()} and \code{play_diffusion()} return a 'diff_model' object
@@ -111,6 +157,23 @@ kinds of information than others.
 Note also that there are some reserved column names in one or more
 object classes, which could otherwise lead to some unexpected results.
 }
+\section{Hypergraphs}{
+
+\code{as_hypergraph()} returns a 'hypergraph' object of the \code{{HyperG}} package,
+which is a sparse incidence matrix of hyperedges by nodes,
+and \code{as_stocnet()} reads one.
+A network that is not a hypergraph is reformatted as one first,
+as by \code{\link[=to_hypergraph]{to_hypergraph()}}.
+A 'hypergraph' object holds which nodes each hyperedge has and their
+names, and nothing else, so weights, attributes, directions,
+and times are not carried.
+Neither function needs \code{{HyperG}} to be installed.
+
+Note that \code{\link[=is_hypergraph]{is_hypergraph()}} marks a network of any class that holds
+hyperedges, of which a 'stocnet' object holds the most
+(see the Hypergraphs section of \code{\link[=make_stocnet]{make_stocnet()}}).
+}
+
 \examples{
 test <- data.frame(from = c("A","B","B","C","C"), to = c("I","G","I","G","H"))
 as_edgelist(test)
@@ -118,6 +181,7 @@ as_matrix(test)
 as_igraph(test)
 as_tidygraph(test)
 as_network(test)
+as_hypergraph(create_ring(4))
   # How to create a diff_model object from (basic) observed data
   events <- data.frame(time = c(0,1,1,2,3), 
                        node = c(1,2,3,2,4),
@@ -127,6 +191,7 @@ as_network(test)
 }
 \seealso{
 Other coercions:
-\code{\link{coerce_list}}
+\code{\link{coerce_list}},
+\code{\link{coerce_matrix}}
 }
 \concept{coercions}

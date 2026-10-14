@@ -25,8 +25,10 @@ test_that("node_attribute works", {
 })
 
 test_that("node_mode works", {
+  # `length()` counts a stocnet's components, so the node count is asked for
   expect_equal(as.logical(node_is_mode(ison_southern_women)[1]),
-               as.logical(!node_is_mode(ison_southern_women)[length(ison_southern_women)]))
+               as.logical(!node_is_mode(ison_southern_women)[
+                 net_nodes(ison_southern_women)]))
   expect_s3_class(node_is_mode(ison_southern_women), c("node mark", "logical"))
 })
 
@@ -60,8 +62,9 @@ test_that("layer_ties works", {
   expect_equal(sum(lt), c(net_ties(fict_marvel)))
   expect_equal(lt[match("affiliation", layer_names(fict_marvel))], 683L)
   expect_equal(lt[match("relationship", layer_names(fict_marvel))], 558L)
-  # a curated single layer name not matching finer tie types returns the total
-  expect_equal(layer_ties(fict_thrones), c(net_ties(fict_thrones)))
+  # the layers of a network are counted from its ties
+  expect_length(layer_ties(fict_thrones), 2)
+  expect_equal(sum(layer_ties(fict_thrones)), c(net_ties(fict_thrones)))
 })
 
 test_that("net_layers and layer_ties agree across network forms", {
@@ -227,4 +230,23 @@ test_that("a mark inside filter_ties reads the filtered network", {
     TRUE
   })
   expect_equal(seen, as.integer(net_ties(wave1)))
+})
+
+test_that("tie_is_parallel does not count reports by two reporters as parallel", {
+  css <- as_stocnet(css_array(), attribute = "by")
+  expect_false(any(tie_is_parallel(css)))
+  expect_false(any(tie_is_parallel(as_igraph(css))))
+  # the same report made twice by one reporter is parallel
+  twice <- bind_ties(css, data.frame(from = "A", to = "B", by = "C"))
+  expect_equal(sum(tie_is_parallel(twice)), 2)
+})
+
+test_that("bind_ties refuses a reporter label on a network without labels", {
+  unlabelled <- make_stocnet(ties = data.frame(from = 1:2, to = 2:3, by = 1L),
+                             nodes = dplyr::tibble(.rows = 3))
+  expect_error(bind_ties(unlabelled, data.frame(from = 1, to = 3, by = "E")),
+               "without node labels")
+  # an index is still accepted
+  expect_equal(nrow(bind_ties(unlabelled,
+                              data.frame(from = 1, to = 3, by = 2L))$ties), 3)
 })

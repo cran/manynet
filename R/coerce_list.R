@@ -1,4 +1,4 @@
-#' Coercing into lists or matrices
+#' Coercing into lists
 #' @name coerce_list
 #' @description
 #'   These functions coerce objects into different objects by extracting
@@ -11,17 +11,10 @@
 #'   as missing, as a tibble.
 #'   - `as_infolist()` coerces the object into a list of network-level information, 
 #'   such as the names of the nodes and ties, if not given in the nodelist or edgelist.
-#'   - `as_matrix()` coerces the object into an adjacency (one-mode/unipartite) or incidence (two-mode/bipartite) matrix.
-#'   If the network is a cognitive social structure (i.e. the edgelist contains a 'by' column
-#'   indicating who reported/recorded each tie), `as_matrix()` returns a three-dimensional array
-#'   instead, with dimensions for senders, receivers, and reporters.
-#'   Where a network holds parallel ties, i.e. where `tie_is_parallel()` is TRUE
-#'   for any tie, the cells of the matrix report how many ties join each pair
-#'   of nodes, and so may be greater than one even where the network is
-#'   neither weighted nor signed.
 #'
-#'   These coercions are extractive in the sense that they will lose any information that cannot be contained in the target format.
-#'   for example, `as_matrix()` will lose any information about edge attributes, such as edge types or weights.
+#'   These coercions are extractive in the sense that they will lose any
+#'   information that cannot be contained in the target format.
+#'   For coercion into a matrix, see `as_matrix()`.
 #' @family coercions
 #' @template param_data
 #' @template param_two
@@ -36,16 +29,9 @@
 #' If the sets contain no overlap, a two-mode network is inferred.
 #' If a third, numeric column is present, a weighted network will be created.
 #'
-#' Matrices can be either adjacency (one-mode) or incidence (two-mode) matrices.
-#' Incidence matrices are typically inferred from unequal dimensions,
-#' but since in rare cases a matrix with equal dimensions may still
-#' be an incidence matrix, an additional argument `twomode` can be
-#' specified to override this heuristic.
-#'
 #' @examples
 #' test <- data.frame(from = c("A","B","B","C","C"), to = c("I","G","I","G","H"))
 #' as_edgelist(test)
-#' as_matrix(test)
 #' as_igraph(test)
 #' as_tidygraph(test)
 #' as_network(test)
@@ -53,7 +39,7 @@
 #' The currently implemented coercions or translations are:
 #'
 #'   ```{r, echo = FALSE, comment=""}
-#'   available_methods(collect_functions("as.*(list|matrix)"))
+#'   available_methods(collect_functions("as_.*list"))
 #'   ```
 NULL
 
@@ -81,7 +67,11 @@ as_nodelist.igraph <- function(.data) {
 
 #' @export
 as_nodelist.stocnet <- function(.data) {
-  .data$nodes
+  # A stocnet records how many nodes it has in a table of that many rows, even
+  # where the nodes have neither labels nor attributes to fill its columns.
+  # There is then nothing to list, as for other classes, and the table itself
+  # is read from `.data$nodes` where the number of nodes is what is wanted.
+  if(is.null(.data$nodes) || ncol(.data$nodes) == 0) NULL else .data$nodes
 }
 
 #' @export
@@ -199,6 +189,7 @@ as_edgelist.tbl_graph <- function(.data, twomode = FALSE) {
 
 #' @export
 as_edgelist.network <- function(.data, twomode = FALSE) {
+  if (network::is.hyper(.data)) return(as_edgelist(as_stocnet(.data)))
   out <- network::as.edgelist(.data)
   edges <- as.data.frame(out)
   if (is_twomode(.data)) {
@@ -233,10 +224,17 @@ as_edgelist.data.frame <- function(.data, twomode = FALSE) {
   if (ncol(.data) == 2 && any(names(.data) != c("from", "to"))) {
     names(.data) <- c("from", "to")
     .data
-  } else if(ncol(.data) == 3 && 
+  } else if(ncol(.data) == 3 &&
             (any(names(.data) != c("from", "to", "weight")) |
-            any(names(.data) != c("from", "to", "sign")))) {
+            any(names(.data) != c("from", "to", "sign"))) &&
+            # a third column naming the reporter or target of each tie is not
+            # a weight
+            !names(.data)[3] %in% c("by", "about")) {
     names(.data) <- c("from", "to", "weight")
+    .data
+  } else if(ncol(.data) == 3 && names(.data)[3] %in% c("by", "about")) {
+    # only the ends are renamed, whatever they were called
+    names(.data)[1:2] <- c("from", "to")
     .data
   } else .data
 }
@@ -255,14 +253,16 @@ as_edgelist.siena <- function(.data, twomode = NULL) {
 
 #' @export
 as_edgelist.stocnet <- function(.data, twomode = NULL) {
+  # An edgelist has two columns of nodes, so a hypergraph is listed as the
+  # memberships of its nodes in its hyperedges, one row for each.
+  if(is_hypergraph(.data)) return(as_edgelist(.hyper_to_twomode(.data)))
   # An edgelist lists arcs where the network is directed, so any layer held
   # once per dyad is reciprocated here. This also serves `as_igraph.stocnet()`
   # and, through it, every other class coerced to via igraph.
   out <- .reciprocate_layers(.data)
-  if(is_labelled(.data)){
-    out$from <- .data$nodes$label[out$from]
-    out$to <- .data$nodes$label[out$to]
-  }
+  # The reporter and the target of a tie are nodes too, so they are named
+  # the way its ends are.
+  if(is_labelled(.data)) out <- .label_tie_nodes(out, .data$nodes$label)
   if(ncol(out)==0) NULL else out
 }
 
@@ -480,286 +480,5 @@ as_missinglist.data.frame <- function(.data) NULL
 #' @export
 as_missinglist.default <- function(.data) {
   as_missinglist(as_igraph(.data))
-}
-
-# Matrices ####
-
-#' @rdname coerce_list
-#' @importFrom dplyr arrange
-#' @importFrom igraph edge_attr_names as_adjacency_matrix as_biadjacency_matrix
-#' @importFrom network is.bipartite list.edge.attributes as.matrix.network
-#' @export
-as_matrix <- function(.data,
-                      twomode = NULL) UseMethod("as_matrix")
-
-# Helper to convert cognitive social structure edgelist to 3D array
-.cognitive_to_array <- function(.data, twomode = NULL) {
-  if (is.data.frame(.data) && all(c("from", "to", "by") %in% names(.data))) {
-    el <- .data
-  } else {
-    el <- as_edgelist(.data)
-  }
-  if (!"by" %in% names(el)) {
-    stop("Expected a cognitive social structure with a 'by' column in the edgelist.")
-  }
-  reporters <- sort(unique(el$by))
-  from_nodes <- sort(unique(as.character(el$from)))
-  to_nodes <- sort(unique(as.character(el$to)))
-  # Determine if twomode
-  twomode_net <- if (!is.null(twomode)) twomode else is_twomode(.data)
-  if (twomode_net) {
-    row_nodes <- from_nodes
-    col_nodes <- to_nodes
-  } else {
-    all_nodes <- sort(unique(c(from_nodes, to_nodes)))
-    row_nodes <- all_nodes
-    col_nodes <- all_nodes
-  }
-  # Create 3D array: rows x cols x reporters
-
-  out <- array(0L, dim = c(length(row_nodes), length(col_nodes), 
-                           length(reporters)),
-               dimnames = list(row_nodes, col_nodes, reporters))
-  # Fill in the array
-  el_from <- as.character(el$from)
-  el_to <- as.character(el$to)
-  el_by <- as.character(el$by)
-  el_val <- if ("weight" %in% names(el)) el$weight else rep(1L, nrow(el))
-  for (i in seq_len(nrow(el))) {
-    out[el_from[i], el_to[i], el_by[i]] <- el_val[i]
-  }
-  out
-}
-
-#' @export
-as_matrix.data.frame <- function(.data,
-                                 twomode = NULL) {
-  if (is_cognitive(.data)) return(.cognitive_to_array(.data, twomode = twomode))
-  if ("tbl_df" %in% class(.data)) .data <- as.data.frame(.data)
-  # A third column of nothing but ones and zeroes is not a weight, but where
-  # any of its values are missing it still has to be read, since a tie recorded
-  # as missing cannot be recovered from a count of the ties.
-  valued <- ncol(.data) >= 3 &&
-    (is_weighted(.data) | is_signed(.data) | anyNA(.data[, 3]))
-  if (!valued) {
-    .data <- data.frame(.data) # in case it's a tibble
-    .data <- as.data.frame(table(c(.data[,1]), c(.data[,2])))
-    names(.data) <- c("from","to","weight")
-  }
-  if (ncol(.data) == 3) {
-    # Adds a third (weight) column to a two-column edgelist
-    # .data <- .data[order(.data[,1], .data[,2]),]
-    nodes1 <- as.character(unique(.data[,1]))
-    nodes1 <- sort(nodes1)
-    nodes2 <- as.character(unique(.data[,2]))
-    nodes2 <- sort(nodes2)
-    if(length(intersect(nodes1, nodes2)) > 0 &
-       !setequal(nodes1, nodes2))
-      nodes1 <- nodes2 <- sort(unique(c(nodes1,nodes2)))
-    if (nrow(.data) != length(nodes1)*length(nodes2)) {
-      allcombs <- expand.grid(nodes1, nodes2, stringsAsFactors = FALSE)
-      allcombs <- subset(allcombs, !duplicated(allcombs))
-      names(allcombs) <- c("from","to")
-      .data <- merge(allcombs, .data, all.x = TRUE)
-      .data <- .data[order(.data[,2], .data[,1]),]
-      .data[is.na(.data)] <- 0
-    }
-    .data <- dplyr::arrange(.data,
-                             as.character(.data$to),
-                             as.character(.data$from))
-    .data <- structure(as.numeric(.data[,3]),
-                     dim = c(as.integer(length(nodes1)),
-                             as.integer(length(nodes2))),
-                     dimnames = list(nodes1, nodes2))
-  }
-  if(!is_twomode(.data) && all(rownames(.data) == as.character(seq_nodes(.data)))) attr(.data, "dimnames") <- NULL
-  if(!is_twomode(.data) && sum(.data[lower.tri(.data)])==0) .data <- .data + t(.data)
-  .data
-}
-
-#' @export
-as_matrix.matrix <- function(.data,
-                             twomode = NULL) {
-  .data
-}
-
-# A matrix can hold just one value per tie, so where a network is weighted or
-# signed the cells take whichever of these attributes the network actually has,
-# preferring the weights where it has both.
-.tie_value_attribute <- function(.data){
-  attrs <- igraph::edge_attr_names(.data)
-  if("weight" %in% attrs) "weight" else
-    if("sign" %in% attrs) "sign" else NULL
-}
-
-# A network holds a tie recorded as missing as a tie of missing value,
-# so the cells of such ties must be filled from that attribute and not left
-# to a count of the ties, which would report them as present.
-.holds_missing_ties <- function(.data){
-  val <- .tie_value_attribute(.data)
-  !is.null(val) && anyNA(igraph::edge_attr(.data, val))
-}
-
-# In a multiplex network, a layer that records no values at all leaves its
-# ties without one, which igraph reports as a missing value just as it does a
-# tie recorded as missing. The two are told apart by their layer: a layer
-# holding some values but not others has ties that are genuinely missing,
-# while a layer holding none simply records which of its ties are present.
-.unvalued_layer_ties <- function(.data){
-  attrs <- igraph::edge_attr_names(.data)
-  layer <- if("layer" %in% attrs) "layer" else if("type" %in% attrs) "type" else NULL
-  val <- .tie_value_attribute(.data)
-  # Without layers, or without values, no tie is left without a value it might
-  # otherwise have held.
-  if(is.null(layer) || is.null(val)) return(integer(0))
-  vals <- igraph::edge_attr(.data, val)
-  lyr <- as.character(igraph::edge_attr(.data, layer))
-  valued <- vapply(split(!is.na(vals), lyr), any, logical(1))
-  which(lyr %in% names(valued)[!valued])
-}
-
-# A matrix marks a missing tie by holding nothing in that cell, which is the
-# only thing it can say and all that `net_tie_missing()` needs from it.
-.blank_missing <- function(mat, .data){
-  missing <- as_missinglist(.data)
-  if(is.null(missing) || !nrow(missing)) return(mat)
-  from <- missing$from; to <- missing$to
-  if(!is.numeric(from)){
-    from <- match(as.character(from), rownames(mat))
-    to <- match(as.character(to), colnames(mat))
-  } else if(!is.null(dim(mat)) && nrow(mat) != ncol(mat)) to <- to - nrow(mat)
-  idx <- cbind(from, to)
-  idx <- idx[!is.na(idx[, 1]) & !is.na(idx[, 2]) &
-               idx[, 1] <= nrow(mat) & idx[, 2] <= ncol(mat), , drop = FALSE]
-  if(nrow(idx)) mat[idx] <- NA
-  if(!is_directed(.data) && nrow(idx) && nrow(mat) == ncol(mat))
-    mat[idx[, c(2, 1), drop = FALSE]] <- NA
-  mat
-}
-
-#' @export
-as_matrix.igraph <- function(.data,
-                             twomode = NULL) {
-  if (is_cognitive(.data)) return(.cognitive_to_array(.data, twomode = twomode))
-  if ((!is.null(twomode) && twomode) |
-      (is.null(twomode) & is_twomode(.data) & !is_multiplex(.data))) {
-    if (is_weighted(.data) | is_signed(.data) | .holds_missing_ties(.data)) {
-      mat <- igraph::as_biadjacency_matrix(.data, sparse = FALSE,
-                                           attr = .tie_value_attribute(.data))
-    } else {
-      mat <- igraph::as_biadjacency_matrix(.data, sparse = FALSE,
-                                           attr = NULL)
-    }
-  } else {
-    if (is_weighted(.data) | is_signed(.data) | .holds_missing_ties(.data)) {
-      mat <- igraph::as_adjacency_matrix(.data, sparse = FALSE,
-                                         attr = .tie_value_attribute(.data))
-      if(anyNA(mat) && is_multiplex(.data)){
-        el <- igraph::as_edgelist(.data, names = FALSE)[.unvalued_layer_ties(.data), ,
-                                                        drop = FALSE]
-        if(nrow(el)){
-          mat[el] <- 1
-          if(!igraph::is_directed(.data)) mat[el[, c(2, 1), drop = FALSE]] <- 1
-        }
-      }
-    } else {
-      mat <- igraph::as_adjacency_matrix(.data, sparse = FALSE,
-                                         attr = NULL)
-    }
-  }
-  mat <- .blank_missing(mat, .data)
-  if(!is_labelled(.data)) attr(mat, "dimnames") <- NULL
-  mat
-}
-
-#' @export
-as_matrix.tbl_graph <- function(.data,
-                                twomode = NULL) {
-  if (is_cognitive(.data)) return(.cognitive_to_array(.data, twomode = twomode))
-  as_matrix(as_igraph(.data), twomode = twomode)
-}
-
-#' @export
-as_matrix.network <- function(.data,
-                              twomode = NULL) {
-  if (is_cognitive(.data)) return(.cognitive_to_array(.data, twomode = twomode))
-  if (network::is.bipartite(.data)) {
-    if ("weight" %in% network::list.edge.attributes(.data)) {
-      out <- network::as.matrix.network(.data,
-                                 attrname = "weight",
-                                 expand.bipartite = FALSE)
-      # Note: if expand.bipartite is true it returns the adjacency matrix. If
-      # false it returns the incidence matrix that we want. Use
-      # to_multilevel(mat) on the resulting matrix to do the conversion if needed.
-    } else {
-      out <- network::as.matrix.network(.data,
-                                 expand.bipartite = FALSE)
-    }
-  } else {
-    if ("weight" %in% network::list.edge.attributes(.data)) {
-      out <- network::as.matrix.network(.data, attrname = "weight")
-    } else {
-      out <- network::as.matrix.network(.data)
-    }
-  }
-  # because network can have vertex names that are integers (i.e. just node IDs), 
-  # we remove them since they are really anonymous.
-  if(is.integer(network::network.vertex.names(.data))){
-    attr(out, "dimnames") <- NULL
-  }
-  out
-}
-
-#' @export
-as_matrix.network.goldfish <- function(.data,
-                                       twomode = FALSE) {
-  as_matrix(as_igraph(.data, twomode = twomode))
-}
-
-#' @export
-as_matrix.siena <- function(.data,
-                            twomode = NULL) {
-  # Get the dependent network(s) first
-  # Identify all dyadic depvars
-  dvs <- lapply(.data$depvars, function(x) is.matrix(x[,,1]) )
-  ddvs <- names(which(dvs))
-  # Add in first wave of first DV network
-  out <- .data$depvars[[ddvs[1]]][,,1]
-  # Add remaining waves
-  for(d in 2:dim(.data$depvars[[ddvs[1]]])[3]) {
-    out <- .data$depvars[[ddvs[1]]][,,d] + out
-  }
-  # Add other dyadic depvars
-  if (length(ddvs) > 1) {
-    for (l in 2:length(ddvs)) {
-      for (d in seq_len(dim(.data$depvars[[ddvs[l]]])[3])) {
-        out <- .data$depvars[[ddvs[l]]][,,d] + out
-      }
-    }
-  }
-  # Add dycCovars
-  for (k in seq_along(.data$dycCovars)) {
-    out <- .data$dycCovars[[ddvs[k]]] + out
-  }
-  # Add dyvCovars
-  for (k in seq_along(.data$dyvCovars)) {
-    for (d in seq_len(dim(.data$dyvCovars[[k]])[3])) {
-      out <- .data$dyvCovars[[k]][,,d] + out
-    }
-  }
-  out
-}
-
-#' @export
-as_matrix.diff_model <- function(.data,
-                                 twomode = FALSE) {
-  as_matrix(as_igraph(.data, twomode = twomode))
-}
-
-#' @export
-as_matrix.stocnet <- function(.data,
-                                 twomode = FALSE) {
-  if (is_cognitive(.data)) return(.cognitive_to_array(.data, twomode = twomode))
-  as_matrix(as_igraph(.data, twomode = twomode))
 }
 

@@ -143,8 +143,16 @@ test_that("as_network converts correctly",{
   expect_s3_class(as_network(mat1), "network")
   expect_s3_class(as_network(ison_southern_women), "network")
   expect_equal(as_network(as_network(data2)), as_network(data2))
-  expect_equal(as_network(as_igraph(ison_southern_women)),
-               as_network(ison_southern_women))
+  # The two routes build the edge list in different orders, which a 'network'
+  # object records but which says nothing about the network, so what the two
+  # agree on is compared rather than the objects themselves.
+  via <- as_network(as_igraph(ison_southern_women))
+  direct <- as_network(ison_southern_women)
+  expect_equal(as_matrix(via), as_matrix(direct))
+  expect_equal(sort(network::list.network.attributes(via)),
+               sort(network::list.network.attributes(direct)))
+  expect_equal(sort(network::list.vertex.attributes(via)),
+               sort(network::list.vertex.attributes(direct)))
   expect_equal(igraph::vcount(as_igraph(as_network(dplyr::as_tibble(data2)))),
                igraph::vcount(as_igraph(as_network(data2))))
   expect_equal(is_directed(ison_southern_women),
@@ -534,4 +542,402 @@ test_that("coercing to a network keeps what the network knows about itself", {
   for (f in c("n", "mnext", "directed", "bipartite", "hyper", "loops", "multiple"))
     expect_equal(network::get.network.attribute(via, f),
                  network::get.network.attribute(direct, f))
+})
+
+test_that("a cognitive social structure coerces to an array of every node", {
+  arr <- css_array()
+  css <- as_stocnet(arr, attribute = "by")
+  expect_equal(as_matrix(css), arr)
+  # the reporters are named in every class
+  expect_setequal(as_edgelist(css)$by, c("A", "B", "C", "D"))
+  for(net in list(as_igraph(css), as_tidygraph(css), as_network(css)))
+    expect_equal(as_matrix(net), arr)
+  expect_equal(as_stocnet(as_igraph(css))$ties, css$ties)
+  # an isolate, and a reporter with an empty report, keep their place
+  more <- add_nodes(css, 1, list(name = "E"))
+  expect_equal(dim(as_matrix(more)), c(5, 5, 5))
+  expect_equal(sum(as_matrix(more)[, , "E"]), 0)
+  # reporters given as labels are matched to the nodes
+  labelled <- make_stocnet(nodes = data.frame(label = c("A", "B", "C")),
+                           ties = data.frame(from = "A", to = "B", by = "C"))
+  expect_equal(labelled$ties$by, 3L)
+  expect_error(make_stocnet(nodes = data.frame(label = c("A", "B")),
+                            ties = data.frame(from = "A", to = "B", by = "Z")),
+               "do not match")
+  # an edgelist of reporters keeps them as reporters, and not as weights
+  el <- data.frame(from = "A", to = "B", by = "C")
+  expect_named(as_edgelist(el), c("from", "to", "by"))
+})
+
+test_that("an array coerces to a stocnet once it says what its slices hold", {
+  arr <- css_array()
+  expect_error(as_stocnet(arr), "attribute")
+  expect_equal(as_matrix(as_stocnet(arr, attribute = "by")), arr)
+  expect_equal(as_matrix(as_stocnet(arr, attribute = "about")), arr)
+  expect_error(as_stocnet(arr[, , 1:3], attribute = "by"), "one slice for each")
+  # waves are assumed where the slices cannot be one for each node
+  waves <- arr[, , 1:3]
+  dimnames(waves)[[3]] <- c("1", "2", "3")
+  panel <- as_stocnet(waves)
+  expect_equal(sort(unique(panel$ties$time)), c(1, 2, 3))
+  expect_true(all(vapply(1:3, function(w)
+    all(as_matrix(to_time(panel, w)) == waves[, , w]), logical(1))))
+  layered <- waves
+  dimnames(layered)[[3]] <- c("x", "y", "z")
+  multi <- as_stocnet(layered, attribute = "layer")
+  expect_equal(multi$info$layers, c("x", "y", "z"))
+  for(layer in c("x", "y", "z"))
+    expect_equal(as_matrix(to_uniplex(multi, layer)), layered[, , layer])
+})
+
+test_that("a node that did not report misses its whole report", {
+  arr <- css_array()
+  arr[, , "C"] <- NA
+  diag(arr[, , "C"]) <- 0
+  css <- as_stocnet(arr, attribute = "by")
+  expect_equal(css$nodes$na, c(FALSE, FALSE, TRUE, FALSE))
+  expect_null(css$missings)
+  missing <- as_missinglist(css)
+  expect_equal(nrow(missing), 12)
+  expect_true(all(missing$by == 3))
+  expect_equal(as_matrix(css), arr)
+  # the record survives a round trip through a class that lists each tie
+  expect_equal(as_stocnet(as_igraph(css))$nodes$na, css$nodes$na)
+  expect_equal(as_matrix(as_igraph(css)), arr)
+})
+
+test_that("a stocnet describes the third node its ties name", {
+  css <- as_stocnet(css_array(), attribute = "by")
+  expect_match(describe_network(css), "cognitive social structure$")
+  expect_match(describe_ties(css), "from 4 reporters$")
+  gossip <- as_stocnet(css_array(), attribute = "about")
+  expect_match(describe_network(gossip), "gossip network$")
+  expect_match(describe_ties(gossip), "about 4 targets$")
+  expect_equal(describe_network(ison_adolescents), "A labelled, undirected network")
+})
+
+test_that("the validator reserves 'about' and no longer offers 'by' to brokers", {
+  ties <- data.frame(from = 1:2, to = 2:3)
+  expect_warning(make_stocnet(ties = cbind(ties, observer = 1L),
+                              nodes = dplyr::tibble(.rows = 3)), "by")
+  expect_warning(make_stocnet(ties = cbind(ties, referent = 1L),
+                              nodes = dplyr::tibble(.rows = 3)), "about")
+  expect_no_warning(make_stocnet(ties = cbind(ties, tertius = 1L),
+                                 nodes = dplyr::tibble(.rows = 3)))
+  expect_error(make_stocnet(ties = cbind(ties, about = 7L),
+                            nodes = dplyr::tibble(.rows = 3)), "about")
+})
+
+test_that("a silent reporter is found even where nobody reported a tie", {
+  nodes <- c("A", "B", "C")
+  arr <- array(0, dim = c(3, 3, 3), dimnames = list(nodes, nodes, nodes))
+  arr[, , "B"] <- NA
+  diag(arr[, , "B"]) <- 0
+  css <- as_stocnet(arr, attribute = "by")
+  # only B did not report, and not every node whose ties are missing
+  expect_equal(css$nodes$na, c(FALSE, TRUE, FALSE))
+  expect_null(css$missings)
+  expect_true(is_cognitive(css))
+  expect_true(all(as_missinglist(css)$by == 2))
+  expect_equal(as_matrix(css), arr)
+})
+
+test_that("a multilevel network keeps its within-mode reports in an array", {
+  ml <- make_stocnet(
+    nodes = data.frame(label = c("p", "q", "x"),
+                       mode = c("people", "people", "events")),
+    ties = data.frame(from = c("p", "q", "p"), to = c("q", "p", "x"),
+                      by = c("p", "p", "q")),
+    info = list(directed = TRUE, modes = c("people", "events")))
+  expect_true(is_multilevel(ml))
+  arr <- as_matrix(ml)
+  expect_equal(dim(arr), c(3, 3, 3))
+  expect_equal(sum(arr), 3)
+  expect_equal(arr["q", "p", "p"], 1)
+})
+
+test_that("an array of more than three dimensions is refused", {
+  expect_error(as_stocnet(array(0, dim = c(2, 2, 2, 2))), "4 dimensions")
+})
+
+test_that("an array warns of a wave that holds no ties", {
+  # Such a wave cannot be recorded, which is said rather than hidden
+  lull <- array(0, dim = c(3, 3, 2))
+  lull[1, 2, 1] <- 1
+  expect_warning(as_stocnet(lull, attribute = "time"), "no ties")
+})
+
+test_that("an array in which nobody reported a tie stays an array of reports", {
+  nodes <- c("A", "B", "C")
+  empty <- array(0, dim = c(3, 3, 3), dimnames = list(nodes, nodes, nodes))
+  css <- as_stocnet(empty, attribute = "by")
+  expect_true(is_cognitive(css))
+  expect_equal(as_matrix(css), empty)
+  gossip <- as_stocnet(empty, attribute = "about")
+  expect_true(is_gossip(gossip))
+  expect_equal(as_matrix(gossip), empty)
+})
+
+test_that("a reporter column that names nobody is not read as a weight", {
+  expect_equal(as_matrix(data.frame(from = 1, to = 2, by = NA)),
+               as_matrix(data.frame(from = 1, to = 2)))
+})
+
+test_that("an edgelist of indices counts its reporters and targets as nodes", {
+  css <- as_stocnet(data.frame(from = 1, to = 2, by = 3))
+  expect_equal(as.numeric(net_nodes(css)), 3)
+  expect_true(is_cognitive(css))
+  gossip <- as_stocnet(data.frame(from = 1, to = 2, about = 3))
+  expect_equal(as.numeric(net_nodes(gossip)), 3)
+  # an edgelist without them is read as it always was
+  expect_null(as_stocnet(data.frame(from = 1:2, to = 2:3))$nodes)
+})
+
+test_that("a network without nodes gives an empty array", {
+  empty <- make_stocnet(ties = dplyr::tibble(from = integer(0), to = integer(0),
+                                             by = integer(0)),
+                        info = list(observation = "cognitive"))
+  expect_equal(dim(as_matrix(empty)), c(0, 0, 0))
+  expect_null(as_missinglist(empty))
+})
+
+test_that("a silent ego misses its own report", {
+  ego <- make_stocnet(
+    nodes = data.frame(label = c("e1", "a", "b", "e2", "c"),
+                       na = c(FALSE, FALSE, FALSE, TRUE, FALSE)),
+    ties = data.frame(from = c("e1", "e1"), to = c("a", "b"),
+                      by = c("e1", "e1")),
+    info = list(observation = "egocentric", directed = TRUE))
+  expect_true(all(as_missinglist(ego)$by == 4))
+  arr <- as_matrix(ego)
+  expect_true(all(is.na(arr["e2", c("e1", "a", "b", "c"), "e2"])))
+  expect_equal(as_stocnet(as_igraph(ego))$nodes$na, ego$nodes$na)
+})
+
+test_that("an array of layers keeps the direction of each layer", {
+  nodes <- c("a", "b", "c")
+  layered <- array(0, dim = c(3, 3, 2),
+                   dimnames = list(nodes, nodes, c("sym", "asym")))
+  layered["a", "b", "sym"] <- layered["b", "a", "sym"] <- 1
+  layered["a", "c", "asym"] <- 1
+  multi <- as_stocnet(layered, attribute = "layer")
+  expect_equal(multi$info$directed, c(sym = FALSE, asym = TRUE))
+  expect_equal(sum(multi$ties$layer == "sym"), 1)
+  for(layer in c("sym", "asym"))
+    expect_equal(as_matrix(to_uniplex(multi, layer)), layered[, , layer])
+})
+
+test_that("a reporter column survives other names for the ends", {
+  el <- data.frame(sender = "A", receiver = "B", by = "C")
+  expect_named(as_edgelist(el), c("from", "to", "by"))
+  css <- make_stocnet(nodes = data.frame(label = c("A", "B", "C")),
+                      ties = data.frame(from = "A", to = "C", by = "B"))
+  bound <- bind_ties(css, el)
+  expect_setequal(bound$ties$by, c(2L, 3L))
+  expect_false("weight" %in% names(bound$ties))
+})
+
+test_that("a layer of records is a report only where the design names it", {
+  mixed <- make_stocnet(
+    nodes = data.frame(label = c("a", "b", "c"), na = c(FALSE, FALSE, TRUE)),
+    ties = data.frame(from = c("a", "a"), to = c("b", "b"), by = c("a", NA),
+                      layer = c("advice", "reports")),
+    info = list(layers = c("advice", "reports"), directed = TRUE,
+                observation = "cognitive"))
+  # a design for the whole network leaves the records as records
+  missing <- as_missinglist(mixed)
+  expect_true(all(is.na(missing$by[missing$layer == "reports"])))
+  expect_true(all(missing$from[missing$layer == "reports"] == 3))
+  # a design that names the layer makes its missing ties a whole report
+  named <- mutate_info(mixed, observation = c(advice = "cognitive",
+                                              reports = "cognitive"))
+  missing <- as_missinglist(named)
+  expect_equal(sum(missing$layer == "reports"), 6)
+  expect_true(all(missing$by[missing$layer == "reports"] == 3))
+})
+
+test_that("each layer's own design decides what a silent node misses", {
+  mixed <- make_stocnet(
+    nodes = data.frame(label = c("e1", "a", "e2", "b"),
+                       na = c(FALSE, FALSE, TRUE, FALSE)),
+    ties = data.frame(from = c("e1", "e1", "a"), to = c("a", "e2", "b"),
+                      by = "e1", layer = c("names", "advice", "advice")),
+    info = list(layers = c("names", "advice"), directed = TRUE,
+                observation = c(names = "egocentric", advice = "cognitive")))
+  missing <- as_missinglist(mixed)
+  # the silent ego misses its own ties in the egocentric layer
+  names <- missing[missing$layer == "names", ]
+  expect_equal(nrow(names), 3)
+  expect_true(all(names$from == 3 & names$by == 3))
+  # and its whole report in the cognitive layer
+  expect_equal(sum(missing$layer == "advice"), 12)
+  back <- as_stocnet(as_igraph(mixed))
+  expect_equal(back$nodes$na, mixed$nodes$na)
+  expect_null(back$missings)
+  expect_equal(nrow(as_missinglist(back)), nrow(missing))
+})
+
+test_that("from_reporters joins reports as the array route reads them", {
+  arr <- css_array()
+  reports <- lapply(seq_len(4), function(o) as_stocnet(arr[, , o]))
+  names(reports) <- dimnames(arr)[[3]]
+  css <- from_reporters(reports)
+  expect_true(is_cognitive(css))
+  # reports built on their own may be undirected, but the join is directed
+  expect_equal(as_matrix(css), arr)
+  direct <- as_stocnet(arr, attribute = "by")
+  sorted <- function(x) x$ties[do.call(order, x$ties), ]
+  expect_equal(sorted(css), sorted(direct), ignore_attr = TRUE)
+  expect_equal(css$nodes, direct$nodes)
+  # each class of report is joined into that class
+  expect_s3_class(from_reporters(lapply(reports, as_igraph)), "igraph")
+  expect_equal(from_reporters(lapply(setNames(seq_len(4), dimnames(arr)[[3]]),
+                                     function(o) arr[, , o])), arr)
+  expect_error(from_reporters(list(Z = reports[[1]])), "do not name nodes")
+})
+
+# Directed two-mode networks (#157) --------------------------------------------
+
+test_that("ison_southern_women is undirected in every class", {
+  sw <- ison_southern_women
+  for (x in list(sw, as_igraph(sw), as_tidygraph(sw), as_network(sw),
+                 as_matrix(sw), as_edgelist(sw)))
+    expect_false(is_directed(x))
+})
+
+test_that("a directed two-mode network keeps its direction across classes", {
+  d <- suppressMessages(to_directed(ison_southern_women))
+  expect_true(is_directed(d))
+  expect_true(is_twomode(d))
+  for (cl in c("as_igraph", "as_tidygraph", "as_network", "as_stocnet")) {
+    x <- get(cl)(d)
+    expect_true(is_directed(x), label = cl)
+    expect_true(is_twomode(x), label = cl)
+    expect_equal(as.numeric(net_ties(x)), 89, label = cl)
+  }
+  back <- as_igraph(as_network(as_igraph(d)))
+  expect_true(igraph::is_directed(back))
+  expect_true(is_directed(as_stocnet(as_network(d))))
+})
+
+test_that("a two-mode matrix or one-way edgelist cannot record direction", {
+  d <- suppressMessages(to_directed(ison_southern_women))
+  expect_false(is_directed(as_matrix(d)))
+  expect_false(is_directed(as_edgelist(d)))
+})
+
+test_that("to_directed orients two-mode ties from the first mode", {
+  d <- suppressMessages(to_directed(ison_southern_women))
+  el <- as_edgelist(d)
+  mode <- node_is_mode(d)
+  labels <- node_names(d)
+  expect_true(all(!mode[match(el$from, labels)] & mode[match(el$to, labels)]))
+  el <- as_edgelist(to_redirected(d))
+  expect_true(all(mode[match(el$from, labels)] & !mode[match(el$to, labels)]))
+})
+
+test_that("the laterals are undirected two-mode networks", {
+  for (net in ison_laterals) {
+    expect_true(is_twomode(net))
+    expect_false(is_directed(net))
+    expect_false(is_directed(as_network(net)))
+  }
+})
+
+# Node vectors into dyadic matrices (#161) --------------------------------------
+
+test_that("as_matrix compares the values of a node measure", {
+  net <- add_node_attribute(create_ring(4), "name", LETTERS[1:4])
+  x <- make_node_measure(c(1, 3, NA, 6), net)
+  expect_equal(as_matrix(x)["A", "D"], 5)
+  expect_equal(as_matrix(x, compare = "diff")["A", "D"], -5)
+  expect_equal(as_matrix(x, compare = "diff")["D", "A"], 5)
+  expect_equal(as_matrix(x, compare = "sender")["B", "D"], 3)
+  expect_equal(as_matrix(x, compare = "receiver")["B", "D"], 6)
+  expect_true(is.na(as_matrix(x)["A", "C"]))
+  expect_equal(unname(diag(as_matrix(x))), rep(0, 4))
+  expect_error(as_matrix(x, compare = "same"), "membership")
+})
+
+test_that("as_matrix compares the groups of a node membership", {
+  net <- add_node_attribute(create_ring(4), "name", LETTERS[1:4])
+  g <- make_node_member(c(1, 1, 2, 2), net)
+  expect_equal(unname(as_matrix(g)),
+               matrix(c(0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0), 4, 4))
+  expect_equal(unname(as_matrix(g, twomode = TRUE)),
+               matrix(c(1, 1, 0, 0, 0, 0, 1, 1), 4, 2))
+  expect_error(as_matrix(g, compare = "absdiff"), "same")
+})
+
+test_that("comparisons of a two-mode vector pair the first mode with the second", {
+  x <- make_node_measure(seq_len(32), ison_southern_women)
+  expect_equal(dim(as_matrix(x, compare = "sender")), c(18, 14))
+  expect_true(is_twomode(as_stocnet(x)))
+  # Modes of equal size give a square matrix, which is two-mode all the same
+  even <- create_lattice(c(4, 4))
+  y <- make_node_measure(seq_len(8), even)
+  expect_equal(dim(as_matrix(y)), c(4, 4))
+  expect_true(is_twomode(as_stocnet(y)))
+  expect_true(is_twomode(as_stocnet(y, compare = "sender")))
+  expect_true(is_twomode(as_stocnet(make_node_member(rep(1:2, 4), even))))
+})
+
+test_that("as_stocnet gives the direction that the comparison implies", {
+  net <- add_node_attribute(create_ring(4), "name", LETTERS[1:4])
+  expect_false(is_directed(as_stocnet(make_node_measure(c(1, 3, 2, 6), net))))
+  diffs <- as_stocnet(make_node_measure(c(1, 3, 2, 6), net), compare = "diff")
+  expect_true(is_directed(diffs))
+  expect_equal(as.numeric(net_ties(diffs)), 12)
+  # equal values would give a symmetric matrix, but a sender comparison is
+  # directed all the same
+  same <- as_stocnet(make_node_measure(c(2, 2, 2, 2), net), compare = "sender")
+  expect_true(is_directed(same))
+  expect_equal(as.numeric(net_ties(same)), 12)
+  expect_equal(as.numeric(net_ties(as_stocnet(make_node_member(c(1, 1, 2, 2),
+                                                               net)))), 2)
+})
+
+test_that("the comparisons agree with the matrices that migraph builds", {
+  # migraph's `ego()`, `alter()`, `same()`, and `dist()` terms build these
+  # matrices inline, and its regression then drops the diagonal
+  age <- node_attribute(ison_lawfirm, "age")
+  x <- make_node_measure(age, ison_lawfirm)
+  n <- length(age)
+  off <- !diag(n)
+  rows <- matrix(age, n, n)
+  cols <- matrix(age, n, n, byrow = TRUE)
+  expect_equal(unname(as_matrix(x, compare = "sender"))[off], rows[off])
+  expect_equal(unname(as_matrix(x, compare = "receiver"))[off], cols[off])
+  expect_equal(unname(as_matrix(x, compare = "absdiff"))[off],
+               abs(rows - cols)[off])
+  office <- node_attribute(ison_lawfirm, "office")
+  g <- make_node_member(office, ison_lawfirm)
+  rows <- matrix(office, n, n)
+  cols <- matrix(office, n, n, byrow = TRUE)
+  expect_equal(unname(as_matrix(g))[off], ((rows == cols) * 1)[off])
+})
+
+test_that("as_network() counts the modes of a stocnet listed out of order", {
+  # `add_nodes()` puts a node of the first mode after the second mode
+  sw <- add_nodes(ison_southern_women, 1, list(name = "Nobody", type = FALSE))
+  nw <- as_network(sw)
+  expect_equal(network::get.network.attribute(nw, "bipartite"), 19)
+  expect_equal(as_matrix(nw), as_matrix(sw))
+  expect_equal(net_ties(as_stocnet(nw)), net_ties(sw))
+})
+
+test_that("as_matrix() squares a two-mode 'stocnet' where asked", {
+  sw <- ison_southern_women
+  n <- net_nodes(sw)
+  # The default still reads the modes from the network itself
+  expect_equal(dim(as_matrix(sw)), c(18, 14))
+  expect_equal(dim(as_matrix(sw, twomode = TRUE)), c(18, 14))
+  # `twomode = FALSE` asks for both modes in one square matrix,
+  # as it does for an igraph, where `to_multilevel()` keeps the modes marked
+  square <- as_matrix(sw, twomode = FALSE)
+  expect_equal(dim(square), c(n, n))
+  expect_equal(square, as_matrix(as_igraph(sw), twomode = FALSE))
+  # A one-mode network is square either way
+  expect_equal(dim(as_matrix(ison_adolescents, twomode = FALSE)),
+               dim(as_matrix(ison_adolescents)))
 })

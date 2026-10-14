@@ -190,8 +190,25 @@ test_that("to_mode reports an unusable mode",{
   expect_error(to_mode(ison_southern_women, 3), "must be 1 or 2")
   expect_error(to_mode(ison_southern_women, c(1,2)), "must be 1 or 2")
   expect_error(to_mode(ison_southern_women, "cats"), "must be an index")
-  # the modes of this network are not named, so only an index will do
-  expect_error(to_mode(create_ring(c(5,3)), "events"), "not named")
+  # the modes of this network are not named, so only an index will do,
+  # whichever class it is
+  unnamed <- create_ring(c(5,3))
+  for(net in list(unnamed, as_stocnet(unnamed), as_igraph(unnamed))){
+    expect_error(to_mode(net, "events"), "not named")
+    expect_error(to_mode(net, "events"), "FALSE or TRUE")
+    expect_error(to_mode(net, 3), "must be 1 or 2")
+  }
+})
+
+test_that("to_mode takes a mode as FALSE or TRUE", {
+  # as the modes of an unnamed two-mode network are marked
+  unnamed <- create_ring(c(5,3))
+  for(net in list(unnamed, as_stocnet(unnamed), ison_southern_women)){
+    expect_equal(as_matrix(to_mode(net, FALSE)), as_matrix(to_mode(net, 1)))
+    expect_equal(as_matrix(to_mode(net, TRUE)), as_matrix(to_mode(net, 2)))
+  }
+  expect_error(to_mode(unnamed, c(TRUE, FALSE)), "single")
+  expect_error(to_mode(unnamed, NA), "single")
 })
 
 test_that("to_mode reports a name matching both modes",{
@@ -228,7 +245,8 @@ test_that("to_subgraph works", {
 })
 
 test_that("to anti works", {
-  expect_length(to_anti(ison_southern_women), 32)
+  # `length()` counts a stocnet's components, so the node count is asked for
+  expect_equal(net_nodes(to_anti(ison_southern_women)), 32)
   expect_length(to_anti(as_igraph(ison_southern_women)), 32)
 })
 
@@ -777,4 +795,80 @@ test_that("to_mode resolves a mode by name on a stocnet", {
   expect_equal(as_matrix(to_mode(two, "social")), as_matrix(to_mode2(sw)))
   # and one that does not is an error, as it is for an igraph
   expect_error(to_mode(two, "events"), "more than one mode")
+})
+
+test_that("to_undirected reconciles a tie only within one report", {
+  arr <- css_array()
+  css <- as_stocnet(arr, attribute = "by")
+  reverse <- aperm(arr, c(2, 1, 3))
+  und <- to_undirected(css)
+  expect_false(is_directed(und))
+  expect_true(is_cognitive(und))
+  expect_type(und$ties$by, "integer")
+  expect_equal(as_matrix(und), pmax(arr, reverse))
+  expect_equal(as_matrix(to_undirected(css, rule = "min")), pmin(arr, reverse))
+  expect_equal(as_matrix(to_undirected(css, rule = "mean")), (arr + reverse)/2)
+  # the share of dyads it reconciled is taken within each report
+  expect_match(as_infolist(und)$transformations$symmetrisation,
+               "% of connected dyads non-reciprocal")
+  # a network without reporters takes the path it always did
+  expect_equal(as_matrix(to_undirected(as_stocnet(ison_networkers))),
+               as_matrix(to_undirected(ison_networkers)))
+})
+
+test_that("to_undirected removes direction within the modes of a multilevel network", {
+  ml <- make_stocnet(
+    nodes = data.frame(label = c("p", "q", "x"),
+                       mode = c("people", "people", "events")),
+    ties = data.frame(from = c("p", "q", "p"), to = c("q", "p", "x"),
+                      by = c("p", "p", "q")),
+    info = list(directed = TRUE, modes = c("people", "events")))
+  und <- to_undirected(ml)
+  expect_false(is_directed(und))
+  # p's report of p->q and of q->p is now one tie
+  expect_equal(nrow(und$ties), 2)
+})
+
+test_that("to_undirected keeps a layer that is already undirected", {
+  mixed <- make_stocnet(
+    nodes = data.frame(label = c("a", "b", "c")),
+    ties = data.frame(from = c("a", "a", "b", "b"), to = c("b", "b", "c", "a"),
+                      by = "a",
+                      layer = c("friend", "advice", "advice", "advice")),
+    info = list(layers = c("friend", "advice"),
+                directed = c(friend = FALSE, advice = TRUE)))
+  for(rule in c("min", "product", "collapse")){
+    und <- to_undirected(mixed, rule = rule)
+    expect_equal(sum(und$ties$layer == "friend"), 1, label = rule)
+  }
+  mean <- to_undirected(mixed, rule = "mean")
+  expect_equal(mean$ties$weight[mean$ties$layer == "friend"], 1)
+  # only the reciprocated dyad of the directed layer is left under "min"
+  expect_equal(sum(to_undirected(mixed, rule = "min")$ties$layer == "advice"), 1)
+})
+
+test_that("to_undirected drops a layer that a rule leaves without ties", {
+  one_way <- make_stocnet(
+    nodes = data.frame(label = c("a", "b")),
+    ties = data.frame(from = c("a", "b"), to = c("b", "a"), by = "a",
+                      layer = c("one", "two")),
+    info = list(layers = c("one", "two"), directed = TRUE))
+  und <- to_undirected(one_way, rule = "min")
+  expect_equal(nrow(und$ties), 0)
+  expect_null(und$info$layers)
+})
+
+test_that("to_simplex removes loops and keeps parallel ties in every class", {
+  # a tie from 1 to 2 recorded twice, and a loop on 2
+  net <- make_stocnet(ties = data.frame(from = c(1L, 1L, 2L), to = c(2L, 2L, 2L)),
+                      nodes = dplyr::tibble(.rows = 2),
+                      info = list(directed = TRUE))
+  for(cl in c("stocnet", "tidygraph", "igraph")){
+    out <- to_simplex(get(paste0("as_", cl))(net))
+    expect_false(is_complex(out), label = cl)
+    expect_equal(as.numeric(net_ties(out)), 2, label = cl)
+  }
+  mat <- to_simplex(as_matrix(net))
+  expect_equal(unname(mat), matrix(c(0, 0, 2, 0), 2, 2))
+  expect_match(as_infolist(to_simplex(net))$transformations$exclusion, "loop")
 })

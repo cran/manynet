@@ -38,6 +38,12 @@
 #'   directed layer, and coercion back collapses them again.
 #'   This keeps the degree of a node in an undirected layer the same in every
 #'   class, and makes the round trip lossless.
+#'   - 'signed' should be a logical indicating whether the network is signed.
+#'   If there are multiple layers, this can be a named logical vector that says
+#'   which layers are signed, where the names correspond to the layer names.
+#'   Since the sign of a tie is held as the sign of its weight,
+#'   this records that a network is signed where none of its ties is negative.
+#'   A network with any negative weight is signed whether or not this is given.
 #'   - 'focal' should be a character vector indicating which variables are
 #'   dependent (endogenous). These may be tie layers (dependent networks) and/or
 #'   nodal variables recorded in the changes component (dependent behaviours),
@@ -95,8 +101,10 @@
 #'   Inactive nodes are not in the network, so cannot hold incoming nor outgoing ties.
 #'   - 'na' should be a logical vector indicating which nodes were non-responsive,
 #'   despite being in the network.
-#'   Non-responsive nodes are in the network, so can hold incoming ties, 
+#'   Non-responsive nodes are in the network, so can hold incoming ties,
 #'   but cannot report outgoing ties.
+#'   Where a layer's ties name who reported them,
+#'   a non-responsive node instead missed its whole report of that layer.
 #'   See [as_missinglist()].
 #' @section Changes:
 #'   There are several required names for the columns of the changes component of a stocnet object (if one is included).
@@ -129,6 +137,17 @@
 #'   
 #'   There are also several reserved names for the columns of the ties component of a stocnet object.
 #'   - 'layer' should be a character vector of the layer of each tie in a multiplex or multilayer network
+#'   - 'by' should be an integer vector of the node that reported
+#'   each tie, as in a cognitive social structure or an egocentric network.
+#'   - 'about' should be an integer vector of the node each tie is about,
+#'   as where a sender tells a receiver about a target.
+#'   Like 'from' and 'to', these two are always held as indices into the
+#'   nodes, never as labels.
+#'   `make_stocnet()` converts labels given for any of the four into those
+#'   indices, and coercion to a labelled class converts them back.
+#'   Either may be `NA`, for a layer that no node reported or that is about
+#'   no node.
+#'   See the Third nodes section.
 #'   - 'weight' should be a numeric vector of the weights of the ties in a weighted network
 #'   If the weight vector includes also negative values, then the network is a signed network, 
 #'   and the sign of the tie can be determined from the weight.
@@ -147,6 +166,52 @@
 #'
 #'   How a network records time in its ties, and what each of these columns
 #'   therefore means, is set out in the Time section of [to_time()].
+#' @section Hypergraphs:
+#'   A hyperedge is a tie among any number of nodes, such as the people at a
+#'   meeting, the authors of a paper, or the reactants and products of a
+#'   reaction.
+#'   A 'stocnet' object holds each hyperedge as one row of its ties,
+#'   so that a hyperedge has a weight, a layer, a moment, and any other
+#'   attribute in the same columns as a tie between two nodes has.
+#'   - 'with' should be a list of integer vectors, each the nodes that are the
+#'   members of a hyperedge.
+#'   A hyperedge names no node in 'from' or 'to', which are `NA` on its row,
+#'   and a tie between two nodes holds `NULL` in 'with'.
+#'   `make_stocnet()` converts labels given in 'with' into indices,
+#'   and adds 'from' and 'to' where the ties give only 'with'.
+#'   A hyperedge may have a single member, or none.
+#'   - 'label' should be a character vector naming each hyperedge.
+#'   - 'weight' is the weight of the hyperedge as a whole.
+#'   - Any column whose name begins 'with_' should be a list that holds a
+#'   value for each member of each hyperedge, in the order 'with' lists them.
+#'   'with_weight' is the weight of each node's membership,
+#'   and 'with_direction' says whether each member is on the 'from' or on the
+#'   'to' side of a hyperedge that has two sides,
+#'   as the senders and the receivers of a message have.
+#'   The hyperedges are directed where the network is.
+#'
+#'   Two elements of the info describe the hyperedges.
+#'   - 'hyperedges' should be a character string naming what the hyperedges
+#'   are, as 'modes' names what the nodes are.
+#'   - 'simplicial' should be `TRUE` where the hyperedges are the largest
+#'   faces of a simplicial complex,
+#'   in which every subset of a hyperedge is a hyperedge too.
+#'   Only the largest faces are held.
+#'
+#'   A network may hold ties between two nodes in some layers and hyperedges
+#'   in others, so long as each layer holds one or the other.
+#'
+#'   Other classes have no hyperedges of their own.
+#'   `as_igraph()` and `as_tidygraph()` return a two-mode network in which
+#'   each hyperedge is a node of the second mode,
+#'   marked so that `is_hypergraph()` recognises it and `as_stocnet()` returns
+#'   the hyperedges.
+#'   `as_network()` returns a 'network' object that holds the hyperedges as
+#'   `{network}` does, and `as_matrix()` the incidence matrix of nodes by
+#'   hyperedges.
+#'   See [to_hypergraph()], [to_simplicial()], and [read_hif()] for how to make
+#'   or read a hypergraph, and [to_twomode()] and [to_mode()] for how to hold
+#'   or project one as a network of ties between two nodes.
 #' @section Globals:
 #'   There are several required names for the columns of the globals component of a stocnet object (if one is included).
 #'   - 'var' must be a string vector naming the global variable
@@ -156,6 +221,26 @@
 #'   which each global attribute is updated.
 #'   Globals are carried forward the way changes are: a value holds from the
 #'   moment it is recorded at until another value states otherwise.
+#' @section Third nodes:
+#'   Some designs record a third node for each tie, as well as the two nodes
+#'   it runs between.
+#'   A cognitive social structure (Krackhardt 1987) asks each respondent about
+#'   every pair of nodes in one roster, and so records each tie once for each
+#'   node that reported it, in the 'by' column.
+#'   An egocentric design also records the ego that reported each tie in 'by',
+#'   but each ego names alters of its own.
+#'   Gossip records the node that a tie is about in the 'about' column.
+#'   `is_cognitive()`, `is_egocentric()`, and `is_gossip()` mark these,
+#'   and the 'observation' information tells the first two apart.
+#'
+#'   Each report is a network of its own, so reports of one tie by
+#'   two reporters are two records and not parallel ties.
+#'   `as_matrix()` returns such a network as a three-dimensional array of
+#'   senders, receivers, and reporters (or targets),
+#'   and `as_stocnet()` reads one back, once told what the third dimension
+#'   holds.
+#'   Functions that renumber or delete nodes renumber these columns too,
+#'   and drop the reports of a deleted reporter.
 #' @section Missings:
 #'   The missings component lists the ties the network could have observed and
 #'   did not, one row each, where these are not already implied by an inactive
@@ -169,6 +254,29 @@
 #'   this component is usually NULL.
 #'   [as_missinglist()] returns what it holds together with the ties that the
 #'   non-responsive nodes imply, which is nearly always the larger part.
+#' @section Size and speed:
+#'   A 'stocnet' object is usually smaller in memory than the same network
+#'   as an 'igraph' or 'tbl_graph' object.
+#'   A network of a thousand nodes and four thousand ties takes about half
+#'   the memory as a 'stocnet', whether it is sparse or dense, directed or
+#'   not, and about four fifths where its nodes are named and carry
+#'   attributes, since names and attributes take the same room in any class.
+#'   Only a very small network, or one with no ties at all, is a little
+#'   larger as a 'stocnet', since the list has a few kilobytes of its own.
+#'   A matrix is by far the largest for any network that is not both small
+#'   and dense, since it has a cell for every pair of nodes.
+#'   
+#'   What a 'stocnet' saves in memory it can cost in time,
+#'   where a function works on another class.
+#'   Many functions here, and in the packages that build on this one,
+#'   calculate on an 'igraph' object or on a matrix,
+#'   and coerce a 'stocnet' to one first,
+#'   which takes a few milliseconds for a network of a thousand nodes.
+#'   That is not noticeable in a single call,
+#'   but adds up where a function is called many thousands of times,
+#'   as in a simulation.
+#'   There it is quicker to coerce once, with `as_igraph()` or `as_matrix()`,
+#'   and to pass the result to the functions inside the loop.
 #' @section Printing: 
 #'   When printed, 'stocnet' objects will print to the console any information
 #'   stored about the names of the network, its modes, or layers.
@@ -269,30 +377,150 @@ make_stocnet <- function(info = NULL, nodes = NULL, ties = NULL,
   validate_stocnet(out)
 }
 
+# The tie columns that name nodes, each held as an index into the nodelist:
+# the two ends of a tie, the node that observed it ('by'), and the node it is
+# about ('about'). Whatever renumbers the nodes renumbers all of these, since
+# an index into a nodelist that has changed points at the wrong node.
+.tie_node_cols <- c("from", "to", "by", "about")
+
 # The ties and the missings both list dyads, so both are indexed the same way.
+# 'by' and 'about' may hold NA, for a layer that no node reported or that is
+# about no node, so only a label that is given and not found is an error.
 index_ties <- function(.data, component = "ties"){
   out <- .data
   dyads <- out[[component]]
   if (is.null(dyads) || nrow(dyads) == 0) return(out)
-  if(!is.null(out$nodes) && "label" %in% names(out$nodes) &&
-     is.character(dyads$from) && is.character(dyads$to) &&
-     is.character(out$nodes$label)){
-    dyads <- dyads |>
-      dplyr::mutate(from = match(from, out$nodes$label),
-                    to = match(to, out$nodes$label))
-    if(anyNA(c(dyads$from, dyads$to))){
-      missing_nodes <- unique(c(.data[[component]]$from[is.na(dyads$from)],
-                                .data[[component]]$to[is.na(dyads$to)]))
-      snet_abort("Tie labels {missing_nodes} do not match existing node labels.")
+  labels <- out$nodes[["label"]]
+  missing_nodes <- character(0)
+  for(col in intersect(.tie_node_cols, names(dyads))){
+    x <- dyads[[col]]
+    if(is.character(x) && is.character(labels)){
+      idx <- match(x, labels)
+      missing_nodes <- c(missing_nodes, x[!is.na(x) & is.na(idx)])
+      x <- idx
     }
+    if(is.numeric(x) || all(is.na(x))) x <- as.integer(x)
+    dyads[[col]] <- x
   }
-  if(is.numeric(dyads$from) || is.numeric(dyads$to)){
-    dyads <- dyads |>
-      dplyr::mutate(from = as.integer(from),
-                    to = as.integer(to))
+  # The members of a hyperedge are nodes too, listed together in 'with', and
+  # a hyperedge has no two ends to name in 'from' and 'to'.
+  if("with" %in% names(dyads)){
+    if(!is.list(dyads$with))
+      snet_abort("'{component}$with' must be a list of the nodes in each",
+                 "hyperedge.")
+    dyads$with <- lapply(dyads$with, function(x){
+      if(is.null(x)) return(NULL)
+      if(is.factor(x)) x <- as.character(x)
+      if(is.character(x) && is.character(labels)){
+        idx <- match(x, labels)
+        missing_nodes <<- c(missing_nodes, x[!is.na(x) & is.na(idx)])
+        x <- idx
+      }
+      as.integer(x)
+    })
+    for(col in setdiff(c("from", "to"), names(dyads)))
+      dyads[[col]] <- NA_integer_
+    dyads <- dyads[c("from", "to", setdiff(names(dyads), c("from", "to")))]
+  }
+  if(length(missing_nodes)){
+    missing_nodes <- unique(missing_nodes)
+    snet_abort("Tie labels {missing_nodes} do not match existing node labels.")
   }
   out[[component]] <- dyads
   out
+}
+
+# Hyperedges ####
+
+# A hyperedge is a tie among any number of nodes, held as one row of the ties
+# whose members are listed in 'with' and whose 'from' and 'to' are NA. A row
+# that is a dyad holds NULL in 'with', so one table can hold both.
+.hyper_rows <- function(ties){
+  if(is.null(ties) || !"with" %in% names(ties)) return(rep(FALSE, NROW(ties)))
+  !vapply(ties$with, is.null, logical(1))
+}
+
+# The columns that hold a value for each member of a hyperedge, in the order
+# 'with' lists the members, such as the weight of each node's part in it.
+.with_cols <- function(ties) grep("^with_", names(ties), value = TRUE)
+
+# Whether the hyperedges have a tail and a head: 'with_direction' says which
+# side each member is on, and the network says whether the sides are ordered.
+.hyper_directed <- function(.data){
+  isTRUE(any(.data$info$directed)) &&
+    "with_direction" %in% names(.data$ties)
+}
+
+# Stop a function that works on the ties between pairs of nodes from reading
+# the hyperedges of a hypergraph as if they were such ties.
+.needs_dyads <- function(.data, fn){
+  if(inherits(.data, "stocnet") && is_hypergraph(.data))
+    snet_abort("{.fun {fn}} works on ties between two nodes, and this",
+               "network holds hyperedges.",
+               "Use {.fun to_mode} to project it onto its nodes,",
+               "or {.fun to_twomode} to hold its hyperedges as nodes.")
+  invisible(.data)
+}
+
+# Apply a function to the members of each hyperedge, leaving the dyads as NULL.
+.map_with <- function(with, FUN){
+  lapply(with, function(x) if(is.null(x)) NULL else FUN(x))
+}
+
+# Renumber the node columns of a table of ties, where `map[old]` gives each old
+# index its new one and NA where that node is gone. A tie is dropped where any
+# node it names is gone, since a tie cannot run from, be observed by, or be
+# about a node that is no longer in the network.
+.remap_tie_nodes <- function(ties, map){
+  if(is.null(ties) || nrow(ties) == 0) return(ties)
+  keep <- rep(TRUE, nrow(ties))
+  for(col in intersect(.tie_node_cols, names(ties))){
+    old <- ties[[col]]
+    new <- map[old]
+    keep <- keep & (is.na(old) | !is.na(new))
+    ties[[col]] <- as.integer(new)
+  }
+  # A hyperedge is kept where a member of it is gone, with the members that
+  # remain, since it still ties those. It is dropped only where none remain.
+  hyper <- .hyper_rows(ties)
+  if(any(hyper)){
+    wcols <- .with_cols(ties)
+    for(i in which(hyper)){
+      new <- map[ties$with[[i]]]
+      here <- !is.na(new)
+      if(length(new) > 0 && !any(here)) keep[i] <- FALSE
+      ties$with[[i]] <- as.integer(new[here])
+      for(col in wcols) ties[[col]][[i]] <- ties[[col]][[i]][here]
+    }
+  }
+  ties[keep, , drop = FALSE]
+}
+
+# The node columns of a table of ties given as labels, for the classes that
+# name their nodes.
+.label_tie_nodes <- function(ties, labels){
+  for(col in intersect(.tie_node_cols, names(ties)))
+    ties[[col]] <- labels[ties[[col]]]
+  if("with" %in% names(ties))
+    ties$with <- .map_with(ties$with, function(x) labels[x])
+  ties
+}
+
+# The reverse: node columns given as labels matched to indices again. A column
+# that already holds indices is kept as it is.
+.index_tie_nodes <- function(ties, labels){
+  for(col in intersect(.tie_node_cols, names(ties))){
+    x <- ties[[col]]
+    if(is.factor(x)) x <- as.character(x)
+    # Without labels, a node given as text is an index written as text.
+    ties[[col]] <- if(is.character(x) && !is.null(labels))
+      match(x, labels) else as.integer(x)
+  }
+  if("with" %in% names(ties))
+    ties$with <- .map_with(ties$with, function(x)
+      if(is.character(x) && !is.null(labels)) match(x, labels) else
+        as.integer(x))
+  ties
 }
 
 index_changes <- function(.data){

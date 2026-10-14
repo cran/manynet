@@ -13,11 +13,11 @@ test_that("is_multilevel distinguishes interlocking from plain two-mode networks
   expect_false(is_multilevel(irps_revere))
   # One-mode networks are never multilevel.
   expect_false(is_multilevel(ison_adolescents))
-  # to_multilevel() records levels in 'lvl' and deletes 'type', so an igraph
-  # is no longer two-mode and has to be recognised by its levels instead.
+  # to_multilevel() records levels in 'lvl' beside 'type', so the network
+  # stays two-mode: it has two nodesets, tied both within and between.
   # fict_marvel is a stocnet, which holds its levels in 'mode' either way,
   # so the igraph behaviour is tested on a coerced copy.
-  expect_false(is_twomode(to_multilevel(as_igraph(fict_marvel))))
+  expect_true(is_twomode(to_multilevel(as_igraph(fict_marvel))))
   expect_true(is_multilevel(to_multilevel(as_igraph(fict_marvel))))
   # A two-mode network without any ties cannot have ties within a mode.
   expect_false(is_multilevel(create_empty(c(3,3))))
@@ -126,4 +126,115 @@ test_that("layer_is_directed reports each layer of a mixed network", {
   expect_false(layer_is_directed(net, "membership"))
   # where a network records nothing per layer, it reports its own direction
   expect_equal(unname(layer_is_directed(ison_adolescents)), FALSE)
+})
+
+test_that("is_cognitive, is_egocentric, and is_gossip tell third nodes apart", {
+  css <- as_stocnet(css_array(), attribute = "by")
+  gossip <- as_stocnet(css_array(), attribute = "about")
+  expect_true(is_cognitive(css))
+  expect_false(is_egocentric(css))
+  expect_false(is_gossip(css))
+  expect_true(is_gossip(gossip))
+  expect_false(is_cognitive(gossip))
+  # every class that holds the third node marks it the same way
+  for(net in list(as_igraph(css), as_tidygraph(css), as_network(css),
+                  as_edgelist(css))){
+    expect_true(is_cognitive(net))
+    expect_false(is_egocentric(net))
+  }
+  expect_true(is_gossip(as_igraph(gossip)))
+  # a reporter is not a layer, so a cognitive social structure is not multiplex
+  expect_false(is_multiplex(css))
+  expect_false(is_multiplex(as_igraph(css)))
+  # an array can hold one reporter for each node, but cannot say it does
+  expect_true(is_cognitive(css_array()))
+  expect_false(is_gossip(css_array()))
+  expect_false(is_cognitive(as_matrix(ison_adolescents)))
+  expect_false(is_cognitive(ison_adolescents))
+})
+
+test_that("is_egocentric reads the design, or failing that the reports", {
+  ego <- make_stocnet(nodes = data.frame(label = c("e1", "a", "b", "e2", "c")),
+                      ties = data.frame(from = c("e1", "e1", "e2"),
+                                        to = c("a", "b", "c"),
+                                        by = c("e1", "e1", "e2")))
+  # the two egos' reports share no node
+  expect_true(is_egocentric(ego))
+  expect_false(is_cognitive(ego))
+  # the network's own information outranks the reports
+  expect_true(is_cognitive(mutate_info(ego, observation = "cognitive")))
+  expect_true(is_egocentric(mutate_info(as_stocnet(css_array(), attribute = "by"),
+                                        observation = "egocentric")))
+  # a column that names no node marks nothing
+  none <- make_stocnet(ties = data.frame(from = 1:2, to = 2:3, by = NA),
+                       nodes = dplyr::tibble(.rows = 3))
+  expect_false(is_cognitive(none))
+  expect_false(is_egocentric(none))
+})
+
+test_that("is_egocentric reads the design where no ego named a tie", {
+  none <- make_stocnet(ties = data.frame(from = 1L, to = 2L, by = NA_integer_),
+                       nodes = dplyr::tibble(.rows = 3))
+  expect_true(is_egocentric(mutate_info(none, observation = "egocentric")))
+  expect_false(is_cognitive(mutate_info(none, observation = "egocentric")))
+  expect_true(is_cognitive(mutate_info(none, observation = "cognitive")))
+  expect_false(is_egocentric(mutate_info(none, observation = "cognitive")))
+})
+
+test_that("is_cognitive marks an array only where its slices can be nodes", {
+  expect_true(is_cognitive(array(0, dim = c(3, 3, 3))))
+  # a square array read as two-mode has a slice for each node of both modes
+  expect_true(is_cognitive(array(0, dim = c(3, 3, 6))))
+  # a rectangular array is two-mode, so needs a slice for every node
+  expect_false(is_cognitive(array(0, dim = c(2, 3, 2))))
+  expect_true(is_cognitive(array(0, dim = c(2, 3, 5))))
+})
+
+test_that("is_egolist marks a list of networks and not a network", {
+  egos <- to_egos(ison_adolescents)
+  expect_true(is_egolist(egos))
+  # a single network is not a list of them, whatever it was collected by
+  expect_false(is_egolist(ison_adolescents))
+  # the list has to hold one network for each node
+  expect_false(is_egolist(egos[1:3]))
+  # A list that names no egos is not an egolist, rather than an error
+  expect_false(is_egolist(list()))
+  expect_false(is_egolist(unname(egos)))
+  expect_false(is_egolist(stats::setNames(egos, c(NA, names(egos)[-1]))))
+  # the old name still works, for one release
+  expect_warning(expect_true(is_egonet(egos)), "is_egolist")
+})
+
+test_that("is_disaggregated marks networks holding parallel ties", {
+  expect_true(is_disaggregated(ison_koenigsberg))
+  expect_true(is_disaggregated(irps_nuclear))
+  expect_false(is_disaggregated(ison_adolescents))
+  expect_false(is_disaggregated(to_aggregated(ison_koenigsberg, over = NULL)))
+  expect_false(is_disaggregated(as_matrix(ison_koenigsberg)))
+})
+
+test_that("tie_is_twomode marks the ties of a stocnet that join the two modes", {
+  expect_equal(sum(tie_is_twomode(fict_actually)),
+               sum(tie_attribute(fict_actually, "layer") == "appearance"))
+  expect_false(any(tie_is_twomode(ison_karateka)))
+})
+
+test_that("is_spatial marks a network whose nodes have positions", {
+  ring <- create_ring(4)
+  expect_false(is_spatial(ring))
+  expect_true(is_spatial(mutate_nodes(ring, x = 1:4, y = 4:1)))
+  expect_true(is_spatial(mutate_nodes(ring, lat = 1:4, lon = 4:1)))
+  expect_true(is_spatial(mutate_nodes(ring, Latitude = 1:4, Longitude = 4:1)))
+  expect_true(is_spatial(as_igraph(mutate_nodes(ring, lat = 1:4, long = 4:1))))
+  # a position takes both coordinates, and they must be numbers
+  expect_false(is_spatial(mutate_nodes(ring, x = 1:4)))
+  expect_false(is_spatial(mutate_nodes(ring, x = letters[1:4], y = 4:1)))
+  expect_false(is_spatial(as_matrix(ring)))
+  # a height is part of a position under any of its names, but is not required
+  high <- mutate_nodes(ring, lat = 1:4, lon = 4:1, elevation = c(5, 6, 7, 8))
+  expect_equal(.node_coordinates(high)$z, c(5, 6, 7, 8),
+               ignore_attr = TRUE)
+  expect_null(.node_coordinates(mutate_nodes(ring, x = 1:4, y = 4:1))$z)
+  expect_null(.node_coordinates(
+    mutate_nodes(ring, x = 1:4, y = 4:1, alt = letters[1:4]))$z)
 })

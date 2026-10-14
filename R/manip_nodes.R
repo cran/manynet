@@ -151,7 +151,7 @@ delete_isolates.list <- function(.data) {
 delete_isolates.stocnet <- function(.data) {
   if(is.null(.data$nodes) || nrow(.data$nodes) == 0) return(.data)
   # A node tied at any wave is not an isolate, so changes count as well as ties
-  tied <- c(.data$ties$from, .data$ties$to)
+  tied <- c(.data$ties$from, .data$ties$to, unlist(.data$ties[["with"]]))
   if(!is.null(.data$changes) && nrow(.data$changes) > 0)
     tied <- c(tied, .data$changes$node)
   kept <- which(seq_len(nrow(.data$nodes)) %in% tied)
@@ -269,16 +269,17 @@ filter_nodes.stocnet <- function(.data, ..., .by = NULL){
 # so that every caller that drops nodes reindexes the same way.
 keep_nodes <- function(.data, kept){
   if(is.null(.data$nodes) || nrow(.data$nodes) == 0) return(.data)
+  # Where the nodes to keep were found in another class, which holds each
+  # hyperedge of a hypergraph as a node after the nodes themselves, those
+  # that point beyond the nodes are hyperedges and not nodes to keep.
+  kept <- kept[kept <= nrow(.data$nodes)]
 
   out_nodes <- .data$nodes[kept, , drop = FALSE]
 
-  if(!is.null(.data$ties) && nrow(.data$ties) > 0){
-    out_ties <- dplyr::filter(.data$ties, from %in% kept, to %in% kept) |>
-      dplyr::mutate(from = match(from, kept),
-                    to = match(to, kept))
-  } else {
-    out_ties <- .data$ties
-  }
+  # A tie is dropped where its ends are gone, and so is a report by a reporter
+  # who is gone or a report about a node that is gone.
+  map <- match(seq_len(nrow(.data$nodes)), kept)
+  out_ties <- .remap_tie_nodes(.data$ties, map)
 
   if(!is.null(.data$changes) && nrow(.data$changes) > 0){
     out_changes <- dplyr::filter(.data$changes, node %in% kept) |>
@@ -290,9 +291,7 @@ keep_nodes <- function(.data, kept){
   # The missings list dyads, so dropping nodes drops the dyads either of whose
   # ends is gone, and renumbers the rest, exactly as it does for the ties.
   if(!is.null(.data$missings) && nrow(.data$missings) > 0){
-    out_missings <- dplyr::filter(.data$missings, from %in% kept, to %in% kept) |>
-      dplyr::mutate(from = match(from, kept),
-                    to = match(to, kept))
+    out_missings <- .remap_tie_nodes(.data$missings, map)
     if(nrow(out_missings) == 0) out_missings <- NULL
   } else {
     out_missings <- .data$missings
@@ -334,13 +333,7 @@ arrange_nodes.stocnet <- function(.data, ...){
   
   out_nodes <- dplyr::select(arranged, -.orig_row)
   
-  if(!is.null(.data$ties) && nrow(.data$ties) > 0){
-    out_ties <- .data$ties |> 
-      dplyr::mutate(from = old_to_new[from],
-                    to = old_to_new[to])
-  } else {
-    out_ties <- .data$ties
-  }
+  out_ties <- .remap_tie_nodes(.data$ties, old_to_new)
   
   if(!is.null(.data$changes) && nrow(.data$changes) > 0){
     out_changes <- .data$changes |> 
@@ -349,8 +342,12 @@ arrange_nodes.stocnet <- function(.data, ...){
     out_changes <- .data$changes
   }
   
+  # The missing ties name nodes too, and the globals name none, but both are
+  # kept, as `keep_nodes()` keeps them.
+  out_missings <- .remap_tie_nodes(.data$missings, old_to_new)
   make_stocnet(nodes = out_nodes, ties = out_ties, 
-               changes = out_changes, info = .data$info)
+               changes = out_changes, globals = .data$globals,
+               missings = out_missings, info = .data$info)
 }
 
 # Manipulating nodes attributes ####
@@ -427,6 +424,12 @@ add_node_attribute.stocnet <- function(.data, attr_name, vector){
   if(is.null(out$nodes)) out$nodes <- dplyr::tibble(.rows = net_nodes(.data))
   if(length(vector) != nrow(out$nodes))
     vector <- .pad_to_modes(vector, .data)
+  # A stocnet holds node names in its reserved 'label' column, which is where
+  # `as_stocnet()` puts the 'name' of other classes, so a 'name' goes there too.
+  if(identical(attr_name, "name")) {
+    attr_name <- "label"
+    vector <- as.character(vector)
+  }
   out$nodes[[attr_name]] <- vector
   out
 }
@@ -487,6 +490,14 @@ delete_node_attribute.tbl_graph <- function(.data, attr_name){
 #' @export
 mutate <- tidygraph::mutate
 
+# A stocnet is not a tidygraph, so the verb is given a method of its own.
+# The nodes are what it changes, as they are what a tidygraph has active
+# unless told otherwise.
+#' @exportS3Method dplyr::mutate
+mutate.stocnet <- function(.data, ...){
+  mutate_nodes(.data, ...)
+}
+
 #' @rdname manip_nodes_attr
 #' @importFrom tidygraph mutate
 #' @export
@@ -521,6 +532,10 @@ mutate_nodes.stocnet <- function(.data, ...){
     out <- .data
     out$nodes <- out$nodes |> 
       dplyr::mutate(...)
+    # A stocnet labels its nodes in 'label', where other classes use 'name',
+    # so nodes that are named as theirs are, are labelled.
+    if ("name" %in% names(out$nodes) && !"label" %in% names(out$nodes))
+      out$nodes <- dplyr::rename(out$nodes, label = "name")
     out
   })
 }
@@ -672,7 +687,7 @@ join_nodes.stocnet <- function(.data, object2, .by = NULL,
                                  join_type = c("full","left", "right", "inner")){
   join_type <- match.arg(join_type)
   out <- .data
-  if(inherits(object2, "stocnet")) nodelist <- as_nodelist(object2) else
+  if(inherits(object2, "stocnet")) nodelist <- object2$nodes else
     nodelist <- object2
   if(is.null(.data$nodes) && net_nodes(.data) == nrow(nodelist)) 
     return(make_stocnet(info = .data$info, nodes = nodelist, ties = .data$ties, 
