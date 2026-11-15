@@ -87,7 +87,7 @@ as_matrix <- function(.data,
   layers <- if(!is.null(ties[["layer"]])) unique(as.character(ties$layer)) else NULL
   if(length(layers) > 1){
     out <- lapply(layers, function(layer){
-      sub <- to_uniplex(net, layer)
+      sub <- to_layer(net, layer)
       if(.holds_node(sub$ties[[col]])) .third_node_array(sub, col) else
         as_matrix(sub)
     })
@@ -255,8 +255,11 @@ as_matrix.igraph <- function(.data,
                              twomode = NULL, ...) {
   third <- .third_node_col(.data)
   if (!is.na(third)) return(.third_node_array(.data, third))
+  # Only layers keep a two-mode network from its incidence matrix; another
+  # tie attribute, such as a covariate, leaves it rectangular.
+  layered <- any(c("layer", "type") %in% igraph::edge_attr_names(.data))
   if ((!is.null(twomode) && twomode) |
-      (is.null(twomode) & is_twomode(.data) & !is_multiplex(.data))) {
+      (is.null(twomode) & is_twomode(.data) & !layered)) {
     if (is_weighted(.data) | is_signed(.data) | .holds_missing_ties(.data)) {
       mat <- igraph::as_biadjacency_matrix(.data, sparse = FALSE,
                                            attr = .tie_value_attribute(.data))

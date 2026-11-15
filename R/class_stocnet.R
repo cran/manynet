@@ -1,6 +1,9 @@
 #' Multilevel, multiplex, multimodal, signed, dynamic or longitudinal changing networks
 #' @name make_stocnet
 #' @description
+#'   A 'stocnet' can hold multilevel, multiplex, multimodal, signed,
+#'   and dynamic or longitudinal changing networks in one object.
+#'
 #'   The 'stocnet' class of network object is a list of six elements:
 #'   nodes, ties, (nodal) changes, globals, missings,
 #'   and info metadata about the network as a whole.
@@ -38,6 +41,13 @@
 #'   directed layer, and coercion back collapses them again.
 #'   This keeps the degree of a node in an undirected layer the same in every
 #'   class, and makes the round trip lossless.
+#'   Where 'directed' is not given, `make_stocnet()` reads it from the ties,
+#'   as `is_directed()` reads an edgelist:
+#'   the network is directed where some ties are returned and others are not.
+#'   Ties of which none is returned are read as listing each dyad once,
+#'   and so as undirected, with a message to say so.
+#'   Set 'directed' to TRUE for a directed network whose ties are never returned,
+#'   such as a directed cycle.
 #'   - 'signed' should be a logical indicating whether the network is signed.
 #'   If there are multiple layers, this can be a named logical vector that says
 #'   which layers are signed, where the names correspond to the layer names.
@@ -106,6 +116,7 @@
 #'   Where a layer's ties name who reported them,
 #'   a non-responsive node instead missed its whole report of that layer.
 #'   See [as_missinglist()].
+#'   - 'occupant' should be a character vector naming the occupant of each place, with `NA` for an empty place, as [play_mobility()] records it.
 #' @section Changes:
 #'   There are several required names for the columns of the changes component of a stocnet object (if one is included).
 #'   - 'time' can be an integer (e.g. for a wave) or date (e.g. POSIXct or mdate) vector of the times at which changes occur.
@@ -155,6 +166,11 @@
 #'   not the tie itself, which is still present in the network.
 #'   For individual missing ties beyond those implied by inactive or non-responsive nodes,
 #'   please add them to the missings component as an edgelist.
+#'   - 'fixed' should be a logical vector marking the ties that are present
+#'   by design, and so not free to vary, such as SIENA's structural ones (`11`).
+#'   A fixed tie is never missing and is never removed by imputation.
+#'   A fixed tie cannot have a weight of 0, since a dyad fixed at no tie
+#'   is a structural zero, which the missings component holds.
 #'   - 'time' should be a numeric, character, or date vector of the moment at
 #'   which each tie was recorded.
 #'   - 'begin' and 'end' should instead give the interval over which each tie
@@ -249,6 +265,12 @@
 #'   - 'from' and 'to' must be integer vectors of the nodes at each end
 #'   - 'layer' and 'time' should name the layer and moment the tie was missing
 #'   from, where the network records them.
+#'   - 'fixed' should be a logical vector marking the rows that are
+#'   structural zeros, such as SIENA's `10`: dyads fixed at no tie by design.
+#'   A structural zero is neither a tie nor a missing tie, so
+#'   [as_missinglist()] does not return it and imputation never fills it.
+#'   The dyads of a node that is not in the network at a moment, as 'active'
+#'   records, are structural zeros too, and are not listed here.
 #'
 #'   Since most missing tie data is a node that did not report,
 #'   this component is usually NULL.
@@ -367,6 +389,8 @@ make_stocnet <- function(info = NULL, nodes = NULL, ties = NULL,
   if(!is.null(out$missings)) out <- index_ties(out, "missings")
   if(!is.null(out$changes)) out <- index_changes(out)
   out <- structure(out, class = c("stocnet", class(out)))
+  if(is.null(out$info$directed) && !is.null(out$ties))
+    out$info$directed <- .infer_stocnet_directed(out)
   # The ties may arrive with an 'na' column marking which of their rows record
   # a missing tie rather than a tie. Those rows are held instead as the nodes
   # that did not report them, which is both smaller and truer to the data.
@@ -375,6 +399,30 @@ make_stocnet <- function(info = NULL, nodes = NULL, ties = NULL,
   given <- dplyr::bind_rows(out$missings, split$missing)
   if(nrow(given)) out <- .compress_missing(out, given)
   validate_stocnet(out)
+}
+
+# Ties that do not say whether they are directed are read as an edgelist is
+# read by `is_directed.data.frame()`: directed where some ties are returned and
+# others are not. Where none is returned, the ties are taken to list each dyad
+# once, as an undirected network does, and where all are, to list it twice.
+# A tie is returned only within its own layer and report, and a two-mode
+# network, whose ties cannot be returned, is undirected.
+.infer_stocnet_directed <- function(.data){
+  ties <- .data$ties
+  ties <- ties[!.hyper_rows(ties) & ties$from != ties$to, , drop = FALSE]
+  if(!nrow(ties) || is_twomode(.data)) return(FALSE)
+  group <- do.call(paste, c(lapply(intersect(c("layer", "by"), names(ties)),
+                                   function(col) as.character(ties[[col]])),
+                            sep = "\r"))
+  if(!length(group)) group <- ""
+  returned <- paste(group, ties$to, ties$from, sep = "\r") %in%
+    paste(group, ties$from, ties$to, sep = "\r")
+  if(!any(returned)){
+    snet_info("Reading the ties as undirected, since none is returned.",
+              "Set {.code info = list(directed = TRUE)} for a directed network.")
+    return(FALSE)
+  }
+  !all(returned)
 }
 
 # The tie columns that name nodes, each held as an index into the nodelist:
@@ -428,6 +476,10 @@ index_ties <- function(.data, component = "ties"){
   }
   out[[component]] <- dyads
   out
+}
+
+is_grand <- function(.data){
+  !is.null(igraph::graph_attr(.data, "grand"))
 }
 
 # Hyperedges ####
@@ -543,8 +595,15 @@ index_changes <- function(.data){
   x
 }
 
+# Printing ####
+
 #' @rdname make_stocnet
-#' @inheritParams make_mnet
+#' @param x A network object.
+#' @param ... Other arguments passed to or from other methods.
+#' @param n Number of observations to print across all network components,
+#'   i.e. nodes, changes, and ties.
+#'   By default 12.
+#'   `print_all()` prints them all.
 #' @export
 print.stocnet <- function(x, ..., n = 12) {
   arg_list <- list(...)
@@ -568,6 +627,14 @@ print.stocnet <- function(x, ..., n = 12) {
     cli::cli_par()
     cli_div(theme = list(.emph = list(color = "#4576B5")))
     cli::cli_text("{.emph {trans_header}{trans_desc}}")
+    cli::cli_end()
+  }
+  # coding that is not finished is shown, so that it is not forgotten
+  if(!is.null(x$info$uncoded) && nrow(x$info$uncoded) > 0){
+    k <- nrow(x$info$uncoded)
+    cli::cli_par()
+    cli_div(theme = list(.emph = list(color = "#4576B5")))
+    cli::cli_text("{.emph # {k} unit{?s} of text still to code}")
     cli::cli_end()
   }
   top <- x$nodes
@@ -601,10 +668,18 @@ print.stocnet <- function(x, ..., n = 12) {
     cli::cli_end()
   }
   if(!is.null(x$missings) && ncol(x$missings) >0){
-    cli::cli_par()
-    cli::cli_h3("Missings")
-    print(dplyr::as_tibble(x$missings), n = n)
-    cli::cli_end()
+    # A structural zero is held among the missings, but it is not missing,
+    # so the two are printed apart.
+    fixed <- .fixed_rows(x$missings)
+    for(part in c("Missings", "Structural zeros")){
+      rows <- x$missings[if(part == "Missings") !fixed else fixed, , drop = FALSE]
+      if(!nrow(rows)) next
+      rows$fixed <- NULL
+      cli::cli_par()
+      cli::cli_h3(part)
+      print(dplyr::as_tibble(rows), n = n)
+      cli::cli_end()
+    }
   }
   if (!is.null(bottom) && ncol(bottom)>0){
     # cli::cli_par()
@@ -683,4 +758,10 @@ pillar_shaft.value <- function(x, ...) {
     paste0(value_text, type_label),
     align = "right"
   )
+}
+
+#' @rdname make_stocnet
+#' @export
+print_all <- function(x, ...) {
+  print(x, n = Inf)
 }

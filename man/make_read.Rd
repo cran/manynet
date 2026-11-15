@@ -205,6 +205,9 @@ and so by default the ties that meet at such a node are joined,
 unless a point describes that node.
 A joined tie records the number of 'segments' it joins,
 and its 'length' is the sum of theirs.
+A length is a distance and not a weight (see \code{\link[=tie_lengths]{tie_lengths()}}),
+so the network is weighted only where the file gives its lines a 'weight'.
+Measures of shortest paths read the lengths as they are.
 Its other numeric attributes are their means, weighted by their lengths,
 which is not what is wanted of an attribute that is itself a total.
 Where its segments differ on any other attribute,
@@ -223,16 +226,20 @@ Audun Myers, Joshua Pickard, Brenda Praggastis, and Przemysław Szufel. 2025.
 \link{as}
 
 Other makes:
-\code{\link{make_collect}},
+\code{\link[=as_diffusion]{as_diffusion()}},
+\code{\link[=as_mobility]{as_mobility()}},
+\code{\link[=as_opinion]{as_opinion()}},
+\code{\link{make_bibliography}},
 \code{\link{make_create}},
 \code{\link{make_ego}},
 \code{\link{make_emails}},
 \code{\link{make_explicit}},
 \code{\link{make_groups}},
 \code{\link{make_growth}},
-\code{\link{make_learning}},
-\code{\link{make_play}},
+\code{\link{make_packages}},
 \code{\link{make_random}},
+\code{\link{make_statements}},
+\code{\link{make_text}},
 \code{\link{make_write}}
 }
 \concept{makes}

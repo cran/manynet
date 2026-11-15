@@ -136,8 +136,8 @@ test_that("tree creation works", {
 })
 
 test_that("create lattice works", {
-  expect_s3_class(create_lattice(4), "igraph")
-  expect_equal(igraph::vcount(create_lattice(5)), 5)
+  expect_s3_class(create_lattice(4), "stocnet")
+  expect_equal(as.numeric(net_nodes(create_lattice(5))), 5)
   expect_false(is_directed(create_lattice(6)))
   expect_true(is_directed(create_lattice(6, directed = TRUE)))
   square <- as_igraph(create_lattice(16, width = 4))
@@ -171,10 +171,37 @@ test_that("component creation works", {
   expect_error(create_components(c(5,5,5)), "single integer")
 })
 
+test_that("create_core reads a logical mark as the nodes of the core", {
+  # the nodes marked TRUE are the core, which ties to every other node
+  mark <- c(TRUE, TRUE, FALSE, FALSE, FALSE, FALSE)
+  expect_equal(rowSums(as_matrix(create_core(6, mark = mark))),
+               c(5, 5, 2, 2, 2, 2), ignore_attr = TRUE)
+  # as `generate_core()` reads it, so that the two agree where nothing is
+  # left to chance
+  expect_equal(as_matrix(create_core(6, mark = mark)),
+               as_matrix(generate_core(6, p = 1, mark = mark)))
+  twomode <- as_matrix(create_core(c(2, 3), mark = c(TRUE, FALSE,
+                                                     TRUE, FALSE, FALSE)))
+  expect_equal(twomode, matrix(c(1, 1, 1, 0, 1, 0), 2, 3), ignore_attr = TRUE)
+  # the default, and a mark of two groups, are read as they were
+  expect_equal(as_matrix(create_core(6, mark = c(1, 1, 1, 2, 2, 2))),
+               as_matrix(create_core(6)))
+})
+
 test_that("core-periphery creation works", {
   expect_false(is_twomode(create_core(6)))
   expect_true(is_twomode(create_core(c(6,7))))
   expect_equal(as.numeric(net_nodes(create_core(c(10,4)))), 14)
+})
+
+test_that("core-periphery creation reads a logical mark as the core", {
+  core <- c(TRUE, TRUE, TRUE, FALSE, FALSE, FALSE)
+  expect_equal(as_matrix(create_core(6, mark = core)),
+               as_matrix(create_core(6)))
+  expect_equal(as_matrix(create_core(6, mark = !core))[4:6, 4:6],
+               1 - diag(3))
+  expect_equal(sum(as_matrix(create_core(c(2,2), mark = c(TRUE, FALSE, TRUE, FALSE)))),
+               3)
 })
 
 # test_that("nest creation works", {

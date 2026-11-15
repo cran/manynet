@@ -54,6 +54,11 @@ validate_ties <- function(.data){
   reserved_cols(.data, "ties", "weight", 
                 class = c("numeric","integer"), 
            aka = c("value", "strength", "val", "sign"))
+  # A length is a distance and not a strength, so it is held apart from the
+  # weight, and a tie can have both. See `tie_lengths()`.
+  reserved_cols(.data, "ties", "length",
+                class = c("numeric","integer"),
+                aka = "distance")
   # Note that 'begin' and 'end' are not among the names for a time here.
   # These mark the span over which a tie is present, which `is_dynamic()`
   # reads as such, rather than a time that is named some other way.
@@ -66,6 +71,15 @@ validate_ties <- function(.data){
                 aka = c("wave", "period", "panel", "date"))
   reserved_cols(.data, "ties", "layer", "character",
            aka = c("type", "plex", "tie"))
+  # A fixed tie is present by design, and so not free to vary, as SIENA's
+  # structural one is. A dyad fixed at no tie is a structural zero, which the
+  # missings hold as a fixed row, so a fixed tie cannot weigh nothing.
+  reserved_cols(.data, "ties", "fixed", "logical")
+  ties <- .data$ties
+  if("fixed" %in% names(ties) && "weight" %in% names(ties) &&
+     any(ties$fixed & ties$weight == 0, na.rm = TRUE))
+    snet_abort(c(x = "A fixed tie marks a tie that is present by design, so it cannot have a weight of 0.",
+                 i = "Hold a dyad fixed at no tie in the missings, with {.code fixed = TRUE}."))
   invisible(.data)
 }
 
@@ -167,6 +181,11 @@ validate_info <- function(.data){
   reserved_cols(.data, "info", "focal", "character",
                 pool = focal_pool, aka = c("dependent","dv"))
   reserved_cols(.data, "info", "centered", "logical")
+  uncoded <- .data$info$uncoded
+  if(!is.null(uncoded) && (!is.data.frame(uncoded) ||
+                           !"document" %in% names(uncoded)))
+    snet_abort("{.code info$uncoded} must be a data frame of the units still",
+               "to code, with a {.val document} column.")
   invisible(.data)
 }
 
@@ -202,6 +221,19 @@ validate_missings <- function(.data){
   reserved_cols(.data, "missings", "time",
                 class = c("character","numeric","integer","mdate","Date","POSIXct","POSIXlt"),
                 aka = c("wave", "period", "date"))
+  # A row fixed by design is a structural zero: a dyad fixed at no tie.
+  # So it cannot also be a tie, nor also a tie that is missing.
+  reserved_cols(.data, "missings", "fixed", "logical")
+  fixed <- .fixed_rows(.data$missings)
+  if(any(fixed)){
+    zeros <- .tie_key(.data$missings[fixed, , drop = FALSE])
+    if(any(zeros %in% .tie_key(.data$ties)))
+      snet_abort(c(x = "A structural zero marks a dyad fixed at no tie, so it cannot also be a tie.",
+                   i = "Remove the tie, or the row of the missings with {.code fixed = TRUE}."))
+    if(any(zeros %in% .tie_key(.data$missings[!fixed, , drop = FALSE])))
+      snet_abort(c(x = "A structural zero marks a dyad fixed at no tie, so it cannot also be missing.",
+                   i = "Keep only one row of the missings for each dyad."))
+  }
   invisible(.data)
 }
 

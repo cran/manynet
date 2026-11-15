@@ -19,6 +19,10 @@ available_methods <- function(fun_vctr) {
                                                  regexpr("\\.", utils::.S3methods(f)),
                                                  invert = TRUE))
   out <- out[lapply(out,length)>0]
+  # the methods for bibliographic records are registered for every function
+  # with a method for data frames, so they would only add a full column
+  out <- unlist(out, recursive = FALSE)
+  out <- out[vapply(out, function(m) m[2] != "bibliometrixDB", logical(1))]
   out <- t(as.data.frame(out))
   colnames(out) <- c("from","to")
   rownames(out) <- NULL
@@ -34,17 +38,6 @@ collect_functions <- function(pattern, package = "manynet"){
 }
 
 # Helper function for checking and downloading packages
-thisRequires <- function(pkgname){
-  if (!requireNamespace(pkgname, quietly = TRUE) & interactive()) {
-    if(utils::askYesNo(msg = paste("The", pkgname, 
-                                   "package is required to run this function. Would you like to install", pkgname, "from CRAN?"))) {
-      utils::install.packages(pkgname)
-    } else {
-      snet_abort(paste("Please install", pkgname, "from CRAN to run this function."))
-    }
-  }
-}
-
 interpolate <- function(values, positions, n, fill = NA) {
   out <- rep(fill, n) 
   out[positions] <- values
@@ -64,15 +57,19 @@ as_input <- function(.data, FUN, ...){
   # snet_minor_info("{.var {substitute(.data)}} is of class {.var {out_class}}.")
   if(out_class == "data.frame") out_class <- "edgelist"
   if(out_class == "tbl_graph") out_class <- "tidygraph"
+  # a class that a network cannot be coerced back to, such as bibliographic
+  # records, is given back as a stocnet
+  if(!exists(paste0("as_", out_class), mode = "function")) out_class <- "stocnet"
   
   fun_label <- as.character(substitute(FUN))   # capture symbol
-  avail_classes <- sapply(strsplit(suppressWarnings(utils::methods(fun_label)), 
-                                   split = "\\."), "[[", 2)
-  avail_classes <- stats::na.omit(avail_classes[avail_classes %in% manynet_classes])
-  if(length(avail_classes) == 0)
+  # The classes are tried in order of preference, and the first with a method
+  # is used. This asks for one method at a time rather than listing them all
+  # with `utils::methods()`, which costs more than many a method itself (#199).
+  has_method <- vapply(manynet_classes, function(cl)
+    !is.null(utils::getS3method(fun_label, cl, optional = TRUE)), logical(1))
+  if(!any(has_method))
     snet_abort("No supported S3 methods found for {.fn {fun_label}}.")
-  avail_class <- avail_classes[order(match(avail_classes, unname(manynet_classes)))][1]
-  avail_class <- names(manynet_classes)[match(avail_class, manynet_classes)]
+  avail_class <- names(manynet_classes)[has_method][1]
   # snet_minor_info("{.fn {fun_label}} is available for {.var {avail_class}}.")
   out <- get(paste0("as_",avail_class))(.data)
   out <- FUN(out, ...)

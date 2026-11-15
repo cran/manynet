@@ -1,3 +1,349 @@
+# manynet 2.5.0
+
+## Making
+
+- Improved the last five making functions to return a named 'stocnet'
+  - `create_ring()` and `create_lattice()`
+  - `generate_random()`, `generate_smallworld()`, and `generate_scalefree()`
+- Improved `generate_degree()` to keep repeated ties, tie attributes, and layers
+  - Fixed draws with repeated ties, which failed, to keep every node's degree
+    - A configuration test on a network of tokens is then against shuffled texts
+  - Tie attributes, such as weights and signs, are kept
+    - With `p = 1`, the attributes are shuffled over the ties drawn
+    - With `p < 1`, each tie keeps its attributes as its ends switch
+  - Added a draw for each layer, so every node keeps its degree in every layer
+- Added `collect_text()` for networks from text (closes #15, @henriquesposito)
+  - Units are documents, paragraphs, sentences, or moving windows of words
+  - Terms are all words, or a dictionary of terms or of names and aliases
+  - `from` (and `to`) give mentions (or gossip) among speakers
+  - `token` takes lemmas or parts of speech from a data frame of tokens
+  - `lexicon` scores the sentiment of units, and signs the mentions of speakers
+- Added `collect_bibliography()` for networks from bibliographic records
+  - Records from 'bibliometrix', 'openalexR', or a BibTeX or BibLaTeX file
+  - Modes of works, authors, keywords, and sources, and the year as `time`
+  - Layers of "cites", "authored", "tagged", and "published" ties
+  - Cited works are named by first author, year, and source
+  - Works hold their global `citations`, and authors their `position`
+- Added `collect_statements()` for networks from texts coded interactively
+  - Units are sentences, paragraphs, or documents, 
+  - Each unit coded by concepts, speakers, and sign, can be skipped with "?"
+  - `roster` offers known speakers and concepts, or the terms of `collect_text()`
+  - `.data` continues a network that is coded in part, with skips shown again first
+- Improved `play_diffusion()` arguments and handling different data shapes
+  - Added and improved arguments
+    - Added `attribute=` to name the node attribute that holds the state history/start
+    - Improved `seeds=` to take several labels or the name of a logical attribute
+    - Added `compartments=` to map the roles S, E, I, R, and D onto own values
+    - Added `background=` for adoption rate without exposure
+    - Added `direction=` for which ties expose a node, by default "in"
+    - Added `transitions=`, a table of transitions with competing risks
+      - Columns `from`, `to`, `rate`, `source`, `exposure`, `threshold`, `prevalence`
+      - `rate` is a hazard, the name of a node attribute, or a function
+      - `exposure` is "threshold", "cascade", or "voter"
+    - Fixed `prevalence=` lowers each threshold by the share infected in the network
+    - Renamed `thresholds=` to `threshold=`
+    - Renamed `latency=` to `onset=`
+  - Improved data shape handling
+    - Missing states start as S, and missing ties count as absent
+    - Inactive nodes are not at risk and do not transmit, also as `active` changes
+    - In each step, spontaneous transitions occur first, then contagion
+    - Follows the waves of a panel, each in force until the next
+    - Follows an event stream, where a tie transmits only once it occurs or while active
+    - Follows a list of networks with the same nodes as a panel, one wave each step
+    - Runs by default over the whole period of data that change in time
+    - Fixed exposed nodes, which counted all ties, not the ties of transmission
+    - Fixed two-mode exposure, which counted the wrong nodes
+    - Fixed multilevel networks, which failed as their matrix was squared twice
+    - Fixed infected nodes infected again at every step, as isolates were (closes #203)
+    - Fixed dated changes exposure
+    - Fixed `fatality=`, which failed, and let the dead infect others
+    - Fixed `immune=` nodes to start as R in the record, not as S
+    - Fixed nodes with no contacts adopting under a fractional threshold
+  - Keeps the table of transitions of a 'stocnet' in `info$transitions`
+  - Accelerated `play_diffusion()` ~2.5x by making each contact matrix once
+- Renamed `play_learning()` to `play_opinion()`, which now returns the network with changes
+  - Renamed `beliefs=` to `opinions=`, which can also name node attributes or a matrix of issues
+  - Added `rule=` for the "degroot", "hegselmann_krause", and "deffuant" rules
+  - Added `stubbornness=`, for the model of Friedkin and Johnsen
+  - Renamed `closeness=` to `confidence=`, for the bounded-confidence rules only
+  - Renamed `epsilon=` to `tolerance=`
+  - Added `weights=` to weigh influence by a tie attribute or by a matrix
+  - Added repulsion along negative ties for the "degroot" rule (Altafini)
+  - Fixed "hegselmann_krause" to count each node's own opinion
+- Renamed `play_segregation()` to `play_mobility()`, after the mechanism
+  - Renamed `heterophily=` to `preference=`, which can also be a function
+  - `who_moves=` and `choice_function=` can also be functions that score nodes
+  - Added `max_dist=` to limit moves to a distance along ties, for vacancy chains
+  - All attributes of an occupant move with it, not only `attribute=`
+  - `choice_function = "minimising"` takes the nearest place that satisfies
+  - Returns the start state, with a record of the moves in the changes
+  - Added `occupant` and `satisfied` to the nodes, which the record follows
+
+## Classes
+
+- Removed the 'mnet' class, now that no dataset uses it
+  - `as_tidygraph()` returns a plain 'tbl_graph', which prints as in 'tidygraph'
+  - Deprecated `print.mnet()`, which still prints a network saved with the class
+  - Removed the `$` accessors of 'mnet' objects
+- Added the 'diffusionModel' class, with 'diff_model' second for one release
+- Added the 'opinionModel' class, with 'learn_model' second for one release
+- Added the 'mobilityModel' class, a table of moves with one row for each step
+- Added `occupant` as a reserved node column, naming the occupant of a place
+- Added `.stocnet$info$uncoded` for units of text still to code
+- Added `.stocnet$info$compartments` for the roles of the values of a diffusion
+- Added the 'diffusionTransitions' class, which prints a joint source as "E+I"
+- Added structural zeros, dyads fixed at no tie, to the 'stocnet' (closes #195)
+  - Held as rows of `.stocnet$missings` with `fixed = TRUE`
+  - Dyads of inactive nodes are implied, not held
+  - `as_missinglist()` and imputation leave them out, since they are not missing
+
+## Coercion
+
+- Added `as_stocnet()` methods for 'quanteda' and 'tm' matrices of documents
+  - `as_stocnet.dfm()` for a document-feature matrix of 'quanteda'
+  - `as_stocnet.DocumentTermMatrix()` and `as_stocnet.TermDocumentMatrix()`
+- Added `as_stocnet.bibliometrixDB()` for the records of 'bibliometrix'
+- Improved `as_diffusion()` to count each value of any state attribute
+  - Added `attribute=` to name the attribute, by default "diffusion"
+  - Fixed the counts of E with `latency` and of S with waning on an 'igraph'
+  - Added the nodes that die from `fatality=` to D, and not to their last value
+  - Fixed counting the inactive nodes as S; `n` counts the active nodes at each step
+  - A column `t` copies `time` until 2.6.0, and is not printed
+- Added `as_monan()` to coerce a network of people and places for 'MoNAn'
+  - Also takes a network of places with an `occupant` record of moves
+- Added `as_opinion()` to read a record of opinions as an 'opinionModel'
+- Added `as_mobility()` to read a record of moves as a 'mobilityModel'
+- Fixed `as_igraph()` and `as_tidygraph()` reading edgelist `time` column as weights
+- Renamed `attribute=`to `over=` in `as_stocnet.array()`
+- Improved `as_stocnet.sienadata()` to read SIENA's 10 as a structural zero, not as a non-tie
+- Improved `as_siena.stocnet()`
+  - Writes structural zeros as SIENA's 10
+  - Added `focal=` to name the dependent variables, in place of `info$focal`
+  - When no `focal` and session interactive, presents user with options in the console
+  - Fixed a tie layer at one wave only to be a constant dyadic covariate
+  - Added `...` for `RSiena::sienaDependent()`, for example `allowOnly = FALSE`
+
+## Manipulating
+
+- Fixed `filter_nodes()` on a 'stocnet' where it drops every node of a mode
+- Fixed `bind_node_attributes()` to keep the names of the modes
+- Fixed `delete_isolates()` on a list of 'stocnet' objects, which failed
+- Fixed `summarise_ties()` on a 'stocnet', which dropped the nodes with no tie
+- Improved `bind_changes()` to start any categorical state variable
+  - Starts every node as "S", or as the S of `compartments=`
+
+## Modifying
+
+- Added `to_influence()` for the row-stochastic influence matrix of a network
+  - A negative tie repels; the absolute weights of each row sum to 1
+- Added `to_mobility()` for a network of places with one tie for each move
+  - Also takes a network of places with an `occupant` record of moves
+- Improved `to_mode()` with new measures and with `through`
+  - Added `"agreement"`, `"disagreement"`, and `"signed"` for signed ties
+  - Added `"activity"`, the count over the pair's mean number of ties
+  - Added `"association"`, the association strength of van Eck and Waltman
+  - Added `"fractional"`, the fractional counting of co-authorship
+    - The new measures are in `to_mode1()` and `to_mode2()` too
+  - Added `through` for networks of three or more modes
+    - By default, all the other modes
+  - Fixed `"count"`, which ignored weights and repeated ties, to add them
+- Improved `to_twomode()`
+  - Added `through` to project three or more modes onto two
+    - E.g. `to_twomode(.data, through = "works")` ties authors to keywords
+  - Fixed a two-mode network, which failed, to be returned as it is
+- Improved `to_proximity()` with the new two-mode measures of `to_mode()`
+- Added `"tfidf"` to `to_normalised()` for networks of documents and terms
+- Improved `to_time()` with moving time windows
+  - Added `window` for the ties recorded in a window up to `time`
+    - E.g. `to_time(irps_nuclear, as.Date("2011-04-01"), window = 30)`
+    - `window = c(15, 15)` centres the window on `time`
+  - Added `kernel` to weight the ties in a window by their distance from `time`
+    - `"uniform"`, `"triangular"`, `"epanechnikov"`, or `"gaussian"`
+  - Fixed the increments of a 'stocnet', which were counted as ties, to add up
+- Improved `to_times()` with `window` and `kernel` for moving windows
+- Fixed `to_slices()` to add up the increments of a 'stocnet'
+- Fixed `to_waves()` to carry a cross-sectional layer into every wave (closes #202)
+- Fixed `from_waves()`, which failed where only some layers were longitudinal
+- Fixed `from_times()` to keep a cross-sectional layer once, not for each moment
+- Improved `from_layers()` on 'stocnet' objects
+  - Fixed a network of one layer to take the name it is given in the call
+  - Fixed layers renamed for a clash to be renamed in the info as well
+- Renamed the functions for loops and layers, one word for each meaning (closes #182)
+  - Renamed `to_simplex()` to `to_unlooped()`
+  - Renamed `to_uniplex()` to `to_layer()`, which was its alias
+  - Renamed `to_flat()` to `to_aggregated()`, which combines layers by default
+- Added `to_looped()` to give every node a loop, as a diagonal of ones
+- Added `to_simplified()` to remove loops and combine parallel ties by a rule
+- Added `to_firsthand()` for the locally aggregated structure of Krackhardt
+- Added `to_consensus()` for the consensus structure of Krackhardt, by a `threshold` share
+- Added `to_targets()` and `from_targets()` to split and join gossip by its targets
+
+## Describing
+
+- Renamed `is_complex()` to `is_looped()`
+- Improved `is_uniplex()` to count layers only, as the opposite of `is_multiplex()`
+  - It asked `igraph::is_simple()` before, which is now `is_simplified()`
+- Added `is_simplified()` for a network without loops or parallel ties
+- Fixed `layer_ties()` to count a layer without ties as none
+- Fixed `is_aperiodic()` to find the period exactly
+  - A self-tie is a cycle of length one, so it makes its component aperiodic
+- Added `snet_deprecated()` for the old name of a function, argument, or value
+  - A "superseded" name still works without a warning, for one minor release
+  - A "deprecated" name warns with the class `.Deprecated()` gives
+  - A "defunct" name aborts with the class `.Defunct()` gives
+- Replaced `fn_moved()` with `snet_moved()` for a function that moved to another package
+- Added `snet_requires()` for a package that a function needs
+  - Aborts with the command to install it where it is missing, also in a script
+
+## Glossary
+
+- Added glossary entries for diffusion and opinion models
+  - 'cascade', 'voter', 'stubbornness', 'wisdom of crowds', and 'zealot'
+  - 'balance', 'bounded confidence', 'periodic'
+  - 'adopter category', 'exposure', 'long tie', and 'tipping point'
+
+## Data
+
+- Converted the last single 'mnet' datasets to 'stocnet' objects (closes #186)
+  - `ison_adolescents`, `ison_lawfirm`, `ison_networkers`, and `ison_algebra`
+  - `fict_lotr`, `irps_usgeo`, and `irps_revere` 
+- Renamed `ison_brandes` to `ison_centrality`, converted it, and added info
+  - `rename_nodes(ison_centrality, mode = twomode_type)` gives the two-mode version
+  - `ison_brandes` remains as a deprecated copy until 2.6.0
+- Improved `ison_physicians` to be one 'stocnet', not a list of four (closes #185)
+- Removed `ison_laterals`, which nothing used (#185)
+
+# manynet 2.4.5
+
+## Coercion
+
+- Improved the speed of every method that coerces its input by finding the method directly
+
+## Modifying
+
+- Fixed `to_time()` and `to_waves()` on networks whose nodes report or leave in some waves
+  - `to_time()` keeps every node that a change of 'active' says nothing about (closes #198)
+  - Both scope the missing ties to each wave, also in an `igraph` or `tidygraph` (closes #200)
+- Added `to_permuted.stocnet()` to accelerate permutation of `.stocnet` by ~10x (closes #199)
+
+## Measuring
+
+- Fixed `net_name.network()`, which used igraph's accessors
+
+## Glossary
+
+- Added glossary entries for 'cognitive social structure', 'fixed effect', 
+  'random intercept', 'reference category', and 'reporter'
+
+# manynet 2.4.4
+
+## Making
+
+- Improved `collect_cran()` to record the minimum R each package declares as `min_r`
+
+## Classes
+
+- Improved `make_stocnet()` to record `info$directed` from the ties when it is not given (closes #191)
+
+## Coercion
+
+- Fixed `as_matrix()` to return incidence matrices even with a tie covariate (closes #196)
+
+## Marking
+
+- Fixed `is_multiplex()` to give the same answer for every class
+
+# manynet 2.4.3
+
+## Classes
+
+- Added a reserved `fixed` tie column for ties that are present by design (closes #165)
+  - Structural zeros are not held yet, so a fixed tie cannot weigh 0 (see #195)
+
+## Coercion
+
+- Improved `as_siena()` to write a fixed tie as SIENA's structural one, `11` (closes #165)
+  - `as_stocnet()` reads a `11` back as a fixed tie of weight 1
+  - `as_stocnet()` reads a `10` as no tie, with a warning, until #195
+  - `fixed` is kept through `as_igraph()`, `as_tidygraph()`, and `as_network()`
+
+## Modifying
+
+- Fixed `from_reporters()` to give one slice per node for a list of matrices (closes #190)
+  - Matrix and network reports now return the same array (thanks @LeonidasZhak, #192)
+- Fixed `from_reporters()` to mark a node not in the list as not reporting (closes #189)
+  - Records the node's nonresponse, so its slice is `NA` except for its loops
+
+# manynet 2.4.2
+
+## Package
+
+- Updated CONTRIBUTING with updates on how to write "Accelerated..." NEWS items
+
+## Making
+
+- Accelerated `generate_scalefree()` for two-mode networks by keeping degrees as they grow
+  - ~250x faster for 1000 by 200 nodes, and >1000x faster for 2000 by 500 nodes
+
+## Coercion
+
+- Accelerated `as_siena()` by writing all ties into each array at once
+  - ~5x faster for three waves of 300 nodes
+- Accelerated `as_network.igraph()` and `as_network.tbl_graph()` by matching ties at once
+  - Tie attributes other than weights are now copied ~6x faster for 1000 nodes and 20000 ties
+
+## Modifying
+
+- Improved `to_proximity()` speed and treatment of valued ties
+  - Accelerated by comparing every pair of nodes at once for most measures
+  - ~40-140x faster for a one-mode network of 400 nodes, depending on the measure
+  - Ranks ("spearman", "kendall"), "maxcrossmin", and missing ties still go pair by pair
+  - Fixed it returning `Inf` for "overlap" with valued ties
+- Accelerated `to_correlation()` by correlating reciprocal and complex networks at once
+  - ~40x faster for a directed network of 400 nodes
+- Accelerated `to_backbone()` for the "simmelian" and "lans" filters
+  - "simmelian" is ~80x faster for 300 nodes, and "lans" ~15x faster for 2000 nodes
+- Accelerated `to_simplicial()` by counting the nodes each pair of faces shares at once
+  - ~20x faster for a two-mode network of 1000 by 400 nodes
+- Accelerated `impute_ties.matrix()` by writing all imputed ties at once
+  - ~25x faster for 1000 nodes with 100000 missing cells
+- Accelerated `impute_nodes()` by finding the neighbours of all incomplete nodes at once
+  - The "neighbourhood" rule is ~40x faster for 5000 nodes
+
+## Describing
+
+- Accelerated `is_aperiodic()` by finding cycle lengths from walks, not simple paths
+  - This avoids enumerating paths, which grows exponentially in denser networks
+  - ~1000x faster for directed networks of 30 to 60 nodes with `max_path_length = 6`
+- Fixed `is_aperiodic()` never returning where one cycle length divided the next of three
+
+# manynet 2.4.1
+
+## Making
+
+- Fixed `create_core()` to read a logical `mark` with `TRUE` for a core node
+
+## Classes
+
+- Improved `validate_stocnet()` to check that a tie's 'length' is numeric and non-negative
+  - Ties can have both 'length' (distance) and 'weight' (strength)
+  - A tie column called 'distance' gets a warning that it might be better called 'length'
+
+## Coercion
+
+- Improved `as_*.data.frame()` to read columns called 'length' or 'distance'
+
+## Modifying
+
+- Improved `to_weighted()` to also convert a numeric tie attribute, e.g. `to_weighted(.data, "length")`
+- Improved `to_backbone()` to filter lengths (without weights) on their inverse, so a short tie counts as a strong one
+- Fixed `to_reporters()` and `to_reporter()` for a CSS with a non-CSS layer, such as `ison_hightech` (closes #187)
+
+## Describing
+
+- Added `tie_lengths()` for the lengths of the ties in a network
+- Added `tie_nodes()` for the number of nodes that each tie joins (closes stocnet/netrics#43)
+
 # manynet 2.4.0
 
 ## Package

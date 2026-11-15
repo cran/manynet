@@ -47,6 +47,23 @@ test_that("to_correlation is unchanged by delegating to to_proximity", {
   expect_true(all(diag(to_correlation(und)) == 1))
 })
 
+test_that("to_permuted permutes a stocnet in place (#199)", {
+  route <- function(x) as_matrix(as_stocnet(to_permuted(as_tidygraph(x))))
+  for(x in list(as_stocnet(ison_adolescents), as_stocnet(ison_networkers),
+                as_stocnet(ison_southern_women))){
+    out <- {set.seed(4); to_permuted(x)}
+    expect_s3_class(out, "stocnet")
+    # The same seed gives the same permutation as the route through a tbl_graph
+    expect_equal(as_matrix(out), {set.seed(4); route(x)})
+    expect_equal(net_ties(out), net_ties(x))
+    expect_identical(out$nodes, x$nodes)
+  }
+  # The layers are kept apart, where a matrix would merge them
+  out <- {set.seed(4); to_permuted(as_stocnet(ison_algebra))}
+  expect_equal(net_ties(out), net_ties(as_stocnet(ison_algebra)))
+  expect_equal(layer_names(out), layer_names(ison_algebra))
+})
+
 test_that("to_permuted works on matrices", {
   onemode <- matrix(c(0,1,1,0, 1,0,0,1, 0,0,0,1, 1,1,0,0), 4, 4)
   twomode <- matrix(c(1,0,0, 0,1,0, 1,1,0, 0,0,1), 4, 3)
@@ -229,4 +246,58 @@ test_that("a node with no ties is as dissimilar in every class", {
     expect_false(anyNA(as_matrix(out)), label = cl)
     expect_equal(unname(as_matrix(out)), unname(ref), label = cl)
   }
+})
+
+test_that("to_proximity compares every pair at once as it would one by one", {
+  set.seed(1)
+  valued <- matrix(rpois(81, 1), 9) * 1.5
+  binary <- (valued > 0) * 1
+  # the measures that are sums over the profiles are found for every pair at
+  # once; walking the pairs, as missing ties do, must agree with them
+  walk <- function(P, similarity, dyad){
+    P[1, 1] <- NA
+    out <- .pairwise_project(P, similarity, dyad, nrow(P))
+    out[1, ] <- out[, 1] <- NA
+    out
+  }
+  for (dyad in c("exclude", "reciprocal", "complex")) {
+    for (similarity in setdiff(.proj_measures,
+                               c("spearman", "kendall", "maxcrossmin"))) {
+      P <- if (similarity %in% .proj_binary) binary else valued
+      at_once <- .pairwise_project(P, similarity, dyad, nrow(P))
+      at_once[1, ] <- at_once[, 1] <- NA
+      expect_equal(at_once, walk(P, similarity, dyad),
+                   info = paste(similarity, dyad))
+    }
+  }
+})
+
+test_that("to_correlation correlates dyadic profiles at once as one by one", {
+  set.seed(2)
+  M <- matrix(runif(64, 1e6, 1e6 + 1), 8)
+  expect_equal(.corRecip(M), .corRecipWalk(M))
+  expect_equal(.corComplex(M), .corComplexWalk(M))
+})
+
+test_that("to_proximity keeps the names of three or more modes", {
+  sn <- make_stocnet(
+    nodes = tibble::tibble(label = c("w1", "w2", "w3", "a1", "k1"),
+                           mode = c("works", "works", "works", "authors",
+                                    "keywords")),
+    ties = tibble::tibble(from = c(1L, 1L, 2L, 4L, 1L), to = c(2L, 3L, 3L, 1L, 5L),
+                          layer = c("cites", "cites", "cites", "authored",
+                                    "tagged")),
+    info = list(modes = c("works", "authors", "keywords"),
+                directed = c(cites = TRUE, authored = FALSE, tagged = FALSE)))
+  out <- to_proximity(to_layer(sn, "cites"), across = "columns")
+  expect_equal(out$nodes$mode, sn$nodes$mode)
+  expect_equal(out$info$modes, sn$info$modes)
+  # w2 and w3 are both cited by w1
+  expect_equal(as_matrix(out)["w2", "w3"], 1)
+})
+
+test_that("to_proximity takes the rules of a projection for a two-mode network only", {
+  expect_equal(to_proximity(ison_southern_women, "fractional"),
+               to_mode1(ison_southern_women, "fractional"))
+  expect_error(to_proximity(ison_adolescents, "agreement"), "two-mode")
 })

@@ -96,19 +96,17 @@ mode, or for the ties sent and the ties received.}
 sizes are drawn.
 By default 1.}
 
-\item{mark}{A logical vector the length of the nodes in the network.
-This can be created by, among other things, any \verb{node_is_*()} function.}
+\item{mark}{A logical vector the length of the nodes in the network,
+with \code{TRUE} for a node of the core.
+This can be created by, among other things, any \verb{node_is_*()} function.
+Where \code{mark} is not logical, the core is the first of its two groups.
+By default the first half of the nodes, or of each mode, are in the core.}
 }
 \value{
 A \code{stocnet} object is returned,
 which can be coerced into other types of objects
 using \code{as_edgelist()}, \code{as_matrix()},
 \code{as_tidygraph()}, \code{as_igraph()}, or \code{as_network()}.
-\code{create_ring()}, \code{create_lattice()},
-\code{generate_random()}, \code{generate_smallworld()}, and
-\code{generate_scalefree()} return a \code{tbl_graph} or \code{igraph} object for now,
-since the released versions of the packages built on this one expect
-one from them.
 
 By default, most networks are created as undirected.
 This can be overruled with the argument \code{directed = TRUE}.
@@ -209,8 +207,6 @@ than empty, as Borgatti and Everett (2000) describe of observed networks.
 \code{mark} says which nodes are in the core, with \code{TRUE} for a node of the
 core, and by default they are the first half of the nodes, or of each
 mode.
-Note that \code{create_core()} for now reads a logical \code{mark} the other way
-round, with \code{TRUE} for a node of the periphery.
 }
 \examples{
 generate_smallworld(12, 0.025)
@@ -258,16 +254,20 @@ Borgatti, Stephen P., and Martin G. Everett. 2000.
 }
 \seealso{
 Other makes:
-\code{\link{make_collect}},
+\code{\link[=as_diffusion]{as_diffusion()}},
+\code{\link[=as_mobility]{as_mobility()}},
+\code{\link[=as_opinion]{as_opinion()}},
+\code{\link{make_bibliography}},
 \code{\link{make_create}},
 \code{\link{make_ego}},
 \code{\link{make_emails}},
 \code{\link{make_explicit}},
 \code{\link{make_growth}},
-\code{\link{make_learning}},
-\code{\link{make_play}},
+\code{\link{make_packages}},
 \code{\link{make_random}},
 \code{\link{make_read}},
+\code{\link{make_statements}},
+\code{\link{make_text}},
 \code{\link{make_write}}
 }
 \concept{makes}

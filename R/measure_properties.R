@@ -195,7 +195,9 @@ layer_ties.stocnet <- function(.data){
 .layer_ties <- function(lnames, types, nt){
   if(is.null(lnames) || is.null(types)) return(as.integer(nt))
   utypes <- unique(types)
-  if(length(utypes) == length(lnames) && all(utypes %in% lnames)){
+  # a layer that has lost its ties, as at a moment before its first,
+  # holds none rather than the ties of the others
+  if(all(utypes %in% lnames)){
     as.integer(table(factor(types, levels = lnames)))
   } else as.integer(nt)
 }
@@ -411,12 +413,15 @@ net_name.igraph <- function(.data, prefix = NULL){
 
 #' @export
 net_name.network <- function(.data, prefix = NULL){
+  # A 'network' keeps its attributes in its own list, which the igraph
+  # accessors cannot read.
   existname <- ""
-  if(!is.null(igraph::graph_attr(.data, "name"))) {
-    existname <- igraph::graph_attr(.data, 'name')
-  } else if(is_grand(.data) && 
-            !is.null(igraph::graph_attr(.data, "grand")$name)){
-    existname <- igraph::graph_attr(.data, 'grand')$name
+  name <- network::get.network.attribute(.data, "name")
+  grand <- network::get.network.attribute(.data, "grand")
+  if(!is.null(name)) {
+    existname <- name
+  } else if(!is.null(grand$name)){
+    existname <- grand$name
   }
   if(existname != "" && !is.null(prefix)) existname <- paste(prefix, existname)
   existname

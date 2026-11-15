@@ -3,6 +3,7 @@
 \name{make_stocnet}
 \alias{make_stocnet}
 \alias{print.stocnet}
+\alias{print_all}
 \alias{validate_stocnet}
 \title{Multilevel, multiplex, multimodal, signed, dynamic or longitudinal changing networks}
 \usage{
@@ -16,6 +17,8 @@ make_stocnet(
 )
 
 \method{print}{stocnet}(x, ..., n = 12)
+
+print_all(x, ...)
 
 validate_stocnet(.data)
 }
@@ -69,13 +72,14 @@ Only the ties that no node's non-response implies need be listed here;
 see the Missingness section.
 By default NULL.}
 
-\item{x}{An object of class "mnet" or "tbl_graph".}
+\item{x}{A network object.}
 
 \item{...}{Other arguments passed to or from other methods.}
 
 \item{n}{Number of observations to print across all network components,
 i.e. nodes, changes, and ties.
-By default 12.}
+By default 12.
+\code{print_all()} prints them all.}
 
 \item{.data}{An object of a \code{{manynet}}-consistent class:
 \itemize{
@@ -88,6 +92,9 @@ By default 12.}
 }}
 }
 \description{
+A 'stocnet' can hold multilevel, multiplex, multimodal, signed,
+and dynamic or longitudinal changing networks in one object.
+
 The 'stocnet' class of network object is a list of six elements:
 nodes, ties, (nodal) changes, globals, missings,
 and info metadata about the network as a whole.
@@ -129,6 +136,13 @@ coercion reciprocates the undirected layers of a network that has any
 directed layer, and coercion back collapses them again.
 This keeps the degree of a node in an undirected layer the same in every
 class, and makes the round trip lossless.
+Where 'directed' is not given, \code{make_stocnet()} reads it from the ties,
+as \code{is_directed()} reads an edgelist:
+the network is directed where some ties are returned and others are not.
+Ties of which none is returned are read as listing each dyad once,
+and so as undirected, with a message to say so.
+Set 'directed' to TRUE for a directed network whose ties are never returned,
+such as a directed cycle.
 \item 'signed' should be a logical indicating whether the network is signed.
 If there are multiple layers, this can be a named logical vector that says
 which layers are signed, where the names correspond to the layer names.
@@ -203,6 +217,7 @@ but cannot report outgoing ties.
 Where a layer's ties name who reported them,
 a non-responsive node instead missed its whole report of that layer.
 See \code{\link[=as_missinglist]{as_missinglist()}}.
+\item 'occupant' should be a character vector naming the occupant of each place, with \code{NA} for an empty place, as \code{\link[=play_mobility]{play_mobility()}} records it.
 }
 }
 
@@ -266,6 +281,11 @@ Missing values, \code{NA}, in the weight vector indicate that the tie value is m
 not the tie itself, which is still present in the network.
 For individual missing ties beyond those implied by inactive or non-responsive nodes,
 please add them to the missings component as an edgelist.
+\item 'fixed' should be a logical vector marking the ties that are present
+by design, and so not free to vary, such as SIENA's structural ones (\code{11}).
+A fixed tie is never missing and is never removed by imputation.
+A fixed tie cannot have a weight of 0, since a dyad fixed at no tie
+is a structural zero, which the missings component holds.
 \item 'time' should be a numeric, character, or date vector of the moment at
 which each tie was recorded.
 \item 'begin' and 'end' should instead give the interval over which each tie
@@ -380,6 +400,12 @@ It takes the same columns as the ties component:
 \item 'from' and 'to' must be integer vectors of the nodes at each end
 \item 'layer' and 'time' should name the layer and moment the tie was missing
 from, where the network records them.
+\item 'fixed' should be a logical vector marking the rows that are
+structural zeros, such as SIENA's \code{10}: dyads fixed at no tie by design.
+A structural zero is neither a tie nor a missing tie, so
+\code{\link[=as_missinglist]{as_missinglist()}} does not return it and imputation never fills it.
+The dyads of a node that is not in the network at a moment, as 'active'
+records, are structural zeros too, and are not listed here.
 }
 
 Since most missing tie data is a node that did not report,

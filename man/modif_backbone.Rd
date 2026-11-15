@@ -46,7 +46,9 @@ network as an undirected one, since it counts shared neighbours.
 }
 
 By default \code{NULL}, which uses "lans" where the network is weighted and
-"simmelian" where it is not. "lans" leads because it assumes nothing about
+"simmelian" where it is not.
+A network with lengths (see \code{\link[=tie_lengths]{tie_lengths()}}) but no weights is filtered
+on the inverse of its lengths, so that a short tie counts as a strong one. "lans" leads because it assumes nothing about
 the shape of the weights, and because it retains each node's strongest tie
 whatever that shape is. "disparity" is the better known filter, but its
 null model expects heavy-tailed weights: where weights are more even, a
@@ -167,6 +169,7 @@ Other ties:
 \code{\link{manip_ties_attr}},
 \code{\link{manip_ties_num}},
 \code{\link{modif_direction}},
+\code{\link{modif_influence}},
 \code{\link{modif_weight}}
 
 Other modifications:
@@ -174,13 +177,15 @@ Other modifications:
 \code{\link{modif_direction}},
 \code{\link{modif_from_parts}},
 \code{\link{modif_from_ternary}},
+\code{\link{modif_influence}},
 \code{\link{modif_labels}},
+\code{\link{modif_layers}},
 \code{\link{modif_levels}},
+\code{\link{modif_loops}},
 \code{\link{modif_miss}},
 \code{\link{modif_motifs}},
 \code{\link{modif_paths}},
 \code{\link{modif_permutation}},
-\code{\link{modif_plexity}},
 \code{\link{modif_project}},
 \code{\link{modif_proximity}},
 \code{\link{modif_scope}},
